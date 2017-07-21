@@ -196,6 +196,9 @@ static u16 cgrp_dfl_inhibit_ss_mask;
 /* some controllers are implicitly enabled on the default hierarchy */
 static unsigned long cgrp_dfl_implicit_ss_mask;
 
+/* some controllers can be threaded on the default hierarchy */
+static u16 cgrp_dfl_threaded_ss_mask;
+
 /* The list of hierarchy roots */
 
 static LIST_HEAD(cgroup_roots);
@@ -362,14 +365,94 @@ static void cgroup_idr_remove(struct idr *idr, int id)
 	spin_unlock_bh(&cgroup_idr_lock);
 }
 
+
+/* can @cgrp host both domain and threaded children? */
+static bool cgroup_is_mixable(struct cgroup *cgrp)
+{
+	/*
+	 * Root isn't under domain level resource control exempting it from
+	 * the no-internal-process constraint, so it can serve as a thread
+	 * root and a parent of resource domains at the same time.
+	 */
+	return !cgroup_parent(cgrp);
+}
+
+/* can @cgrp become a thread root? should always be true for a thread root */
+static bool cgroup_can_be_thread_root(struct cgroup *cgrp)
+{
+	/* mixables don't care */
+	if (cgroup_is_mixable(cgrp))
+		return true;
+
+	/* domain roots can't be nested under threaded */
+	if (cgroup_is_threaded(cgrp))
+		return false;
+
+	/* can only have either domain or threaded children */
+	if (cgrp->nr_populated_domain_children)
+		return false;
+
+	/* and no domain controllers can be enabled */
+	if (cgrp->subtree_control & ~cgrp_dfl_threaded_ss_mask)
+		return false;
+
+	return true;
+}
+
+/* is @cgrp root of a threaded subtree? */
+static bool cgroup_is_thread_root(struct cgroup *cgrp)
+{
+	/* thread root should be a domain */
+	if (cgroup_is_threaded(cgrp))
+		return false;
+
+	/* a domain w/ threaded children is a thread root */
+	if (cgrp->nr_threaded_children)
+		return true;
+
+	/*
+	 * A domain which has tasks and explicit threaded controllers
+	 * enabled is a thread root.
+	 */
+	if (cgroup_has_tasks(cgrp) &&
+	    (cgrp->subtree_control & cgrp_dfl_threaded_ss_mask))
+		return true;
+
+	return false;
+}
+
+/* a domain which isn't connected to the root w/o brekage can't be used */
+static bool cgroup_is_valid_domain(struct cgroup *cgrp)
+{
+	/* the cgroup itself can be a thread root */
+	if (cgroup_is_threaded(cgrp))
+		return false;
+
+	/* but the ancestors can't be unless mixable */
+	while ((cgrp = cgroup_parent(cgrp))) {
+		if (!cgroup_is_mixable(cgrp) && cgroup_is_thread_root(cgrp))
+			return false;
+		if (cgroup_is_threaded(cgrp))
+			return false;
+	}
+
+	return true;
+}
+
 /* subsystems visibly enabled on a cgroup */
 static u16 cgroup_control(struct cgroup *cgrp)
 {
 	struct cgroup *parent = cgroup_parent(cgrp);
 	u16 root_ss_mask = cgrp->root->subsys_mask;
 
-	if (parent)
-		return parent->subtree_control;
+	if (parent) {
+		u16 ss_mask = parent->subtree_control;
+
+		/* threaded cgroups can only have threaded controllers */
+		if (cgroup_is_threaded(cgrp))
+			ss_mask &= cgrp_dfl_threaded_ss_mask;
+		return ss_mask;
+	}
 
 	if (cgroup_on_dfl(cgrp))
 		root_ss_mask &= ~(cgrp_dfl_inhibit_ss_mask |
@@ -382,8 +465,14 @@ static u16 cgroup_ss_mask(struct cgroup *cgrp)
 {
 	struct cgroup *parent = cgroup_parent(cgrp);
 
-	if (parent)
-		return parent->subtree_ss_mask;
+	if (parent) {
+		u16 ss_mask = parent->subtree_ss_mask;
+
+		/* threaded cgroups can only have threaded controllers */
+		if (cgroup_is_threaded(cgrp))
+			ss_mask &= cgrp_dfl_threaded_ss_mask;
+		return ss_mask;
+	}
 
 	return cgrp->root->subsys_mask;
 }
@@ -2642,17 +2731,39 @@ out_release_tset:
 }
 
 /**
- * cgroup_may_migrate_to - verify whether a cgroup can be migration destination
+ * cgroup_migrate_vet_dst - verify whether a cgroup can be migration destination
  * @dst_cgrp: destination cgroup to test
  *
  * On the default hierarchy, except for the root, subtree_control must be
  * zero for migration destination cgroups with tasks so that child cgroups
  * don't compete against tasks.
  */
-static bool cgroup_may_migrate_to(struct cgroup *dst_cgrp)
+int cgroup_migrate_vet_dst(struct cgroup *dst_cgrp)
 {
-	return !cgroup_on_dfl(dst_cgrp) || !cgroup_parent(dst_cgrp) ||
-		!dst_cgrp->subtree_control;
+	/* v1 doesn't have any restriction */
+	if (!cgroup_on_dfl(dst_cgrp))
+		return 0;
+
+	/* verify @dst_cgrp can host resources */
+	if (!cgroup_is_valid_domain(dst_cgrp->dom_cgrp))
+		return -EOPNOTSUPP;
+
+	/* mixables don't care */
+	if (cgroup_is_mixable(dst_cgrp))
+		return 0;
+
+	/*
+	 * If @dst_cgrp is already or can become a thread root or is
+	 * threaded, it doesn't matter.
+	 */
+	if (cgroup_can_be_thread_root(dst_cgrp) || cgroup_is_threaded(dst_cgrp))
+		return 0;
+
+	/* apply no-internal-process constraint */
+	if (dst_cgrp->subtree_control)
+		return -EBUSY;
+
+	return 0;
 }
 
 /**
@@ -2846,8 +2957,9 @@ static int cgroup_attach_task(struct cgroup *dst_cgrp,
 	struct task_struct *task;
 	int ret;
 
-	if (!cgroup_may_migrate_to(dst_cgrp))
-		return -EBUSY;
+	ret = cgroup_migrate_vet_dst(dst_cgrp);
+	if (ret)
+		return ret;
 
 	/* look up all src csets */
 	spin_lock_irq(&css_set_lock);
@@ -3439,6 +3551,46 @@ static void cgroup_finalize_control(struct cgroup *cgrp, int ret)
 	cgroup_apply_control_disable(cgrp);
 }
 
+static int cgroup_vet_subtree_control_enable(struct cgroup *cgrp, u16 enable)
+{
+	u16 domain_enable = enable & ~cgrp_dfl_threaded_ss_mask;
+
+	/* if nothing is getting enabled, nothing to worry about */
+	if (!enable)
+		return 0;
+
+	/* can @cgrp host any resources? */
+	if (!cgroup_is_valid_domain(cgrp->dom_cgrp))
+		return -EOPNOTSUPP;
+
+	/* mixables don't care */
+	if (cgroup_is_mixable(cgrp))
+		return 0;
+
+	if (domain_enable) {
+		/* can't enable domain controllers inside a thread subtree */
+		if (cgroup_is_thread_root(cgrp) || cgroup_is_threaded(cgrp))
+			return -EOPNOTSUPP;
+	} else {
+		/*
+		 * Threaded controllers can handle internal competitions
+		 * and are always allowed inside a (prospective) thread
+		 * subtree.
+		 */
+		if (cgroup_can_be_thread_root(cgrp) || cgroup_is_threaded(cgrp))
+			return 0;
+	}
+
+	/*
+	 * Controllers can't be enabled for a cgroup with tasks to avoid
+	 * child cgroups competing against tasks.
+	 */
+	if (cgroup_has_tasks(cgrp))
+		return -EBUSY;
+
+	return 0;
+}
+
 /* change the enabled child controllers for a cgroup in the default hierarchy */
 static ssize_t cgroup_subtree_control_write(struct kernfs_open_file *of,
 					    char *buf, size_t nbytes,
@@ -3514,27 +3666,9 @@ static ssize_t cgroup_subtree_control_write(struct kernfs_open_file *of,
 		goto out_unlock;
 	}
 
-	/*
-	 * Except for the root, subtree_control must be zero for a cgroup
-	 * with tasks so that child cgroups don't compete against tasks.
-	 */
-	if (enable && cgroup_parent(cgrp)) {
-		struct cgrp_cset_link *link;
-
-		/*
-		 * Because namespaces pin csets too, @cgrp->cset_links
-		 * might not be empty even when @cgrp is empty.  Walk and
-		 * verify each cset.
-		 */
-		spin_lock_irq(&css_set_lock);
-
-		ret = 0;
-		list_for_each_entry(link, &cgrp->cset_links, cset_link) {
-			if (css_set_populated(link->cset)) {
-				ret = -EBUSY;
-				break;
-			}
-		}
+	ret = cgroup_vet_subtree_control_enable(cgrp, enable);
+	if (ret)
+		goto out_unlock;
 
 		spin_unlock_irq(&css_set_lock);
 
@@ -3555,6 +3689,84 @@ static ssize_t cgroup_subtree_control_write(struct kernfs_open_file *of,
 
 	kernfs_activate(cgrp->kn);
 out_unlock:
+	cgroup_kn_unlock(of->kn);
+	return ret ?: nbytes;
+}
+
+static int cgroup_enable_threaded(struct cgroup *cgrp)
+{
+	struct cgroup *parent = cgroup_parent(cgrp);
+	struct cgroup *dom_cgrp = parent->dom_cgrp;
+	int ret;
+
+	lockdep_assert_held(&cgroup_mutex);
+
+	/* noop if already threaded */
+	if (cgroup_is_threaded(cgrp))
+		return 0;
+
+	/* we're joining the parent's domain, ensure its validity */
+	if (!cgroup_is_valid_domain(dom_cgrp) ||
+	    !cgroup_can_be_thread_root(dom_cgrp))
+		return -EOPNOTSUPP;
+
+	/*
+	 * Allow enabling thread mode only on empty cgroups to avoid
+	 * implicit migrations and recursive operations.
+	 */
+	if (cgroup_has_tasks(cgrp) || css_has_online_children(&cgrp->self))
+		return -EBUSY;
+
+	/*
+	 * The following shouldn't cause actual migrations and should
+	 * always succeed.
+	 */
+	cgroup_save_control(cgrp);
+
+	cgrp->dom_cgrp = dom_cgrp;
+	ret = cgroup_apply_control(cgrp);
+	if (!ret)
+		parent->nr_threaded_children++;
+	else
+		cgrp->dom_cgrp = cgrp;
+
+	cgroup_finalize_control(cgrp, ret);
+	return ret;
+}
+
+static int cgroup_type_show(struct seq_file *seq, void *v)
+{
+	struct cgroup *cgrp = seq_css(seq)->cgroup;
+
+	if (cgroup_is_threaded(cgrp))
+		seq_puts(seq, "threaded\n");
+	else if (!cgroup_is_valid_domain(cgrp))
+		seq_puts(seq, "domain invalid\n");
+	else if (cgroup_is_thread_root(cgrp))
+		seq_puts(seq, "domain threaded\n");
+	else
+		seq_puts(seq, "domain\n");
+
+	return 0;
+}
+
+static ssize_t cgroup_type_write(struct kernfs_open_file *of, char *buf,
+				 size_t nbytes, loff_t off)
+{
+	struct cgroup *cgrp;
+	int ret;
+
+	/* only switching to threaded mode is supported */
+	if (strcmp(strstrip(buf), "threaded"))
+		return -EINVAL;
+
+	cgrp = cgroup_kn_lock_live(of->kn, false);
+	if (!cgrp)
+		return -ENOENT;
+
+	/* threaded can only be enabled */
+	ret = cgroup_enable_threaded(cgrp);
+
 	cgroup_kn_unlock(of->kn);
 	return ret ?: nbytes;
 }
@@ -4541,8 +4753,9 @@ int cgroup_transfer_tasks(struct cgroup *to, struct cgroup *from)
 	struct task_struct *task;
 	int ret;
 
-	if (!cgroup_may_migrate_to(to))
-		return -EBUSY;
+	ret = cgroup_migrate_vet_dst(to);
+	if (ret)
+		return ret;
 
 	mutex_lock(&cgroup_mutex);
 
@@ -4585,6 +4798,127 @@ out_err:
 	percpu_up_write(&cgroup_threadgroup_rwsem);
 	mutex_unlock(&cgroup_mutex);
 	return ret;
+}
+
+static void cgroup_procs_release(struct kernfs_open_file *of)
+{
+	if (of->priv) {
+		css_task_iter_end(of->priv);
+		kfree(of->priv);
+	}
+}
+
+static void *cgroup_procs_next(struct seq_file *s, void *v, loff_t *pos)
+{
+	struct kernfs_open_file *of = s->private;
+	struct css_task_iter *it = of->priv;
+	struct task_struct *task;
+
+	do {
+		task = css_task_iter_next(it);
+	} while (task && !thread_group_leader(task));
+
+	return task;
+}
+
+static void *__cgroup_procs_start(struct seq_file *s, loff_t *pos,
+				  unsigned int iter_flags)
+{
+	struct kernfs_open_file *of = s->private;
+	struct cgroup *cgrp = seq_css(s)->cgroup;
+	struct css_task_iter *it = of->priv;
+
+	/*
+	 * When a seq_file is seeked, it's always traversed sequentially
+	 * from position 0, so we can simply keep iterating on !0 *pos.
+	 */
+	if (!it) {
+		if (WARN_ON_ONCE((*pos)++))
+			return ERR_PTR(-EINVAL);
+
+		it = kzalloc(sizeof(*it), GFP_KERNEL);
+		if (!it)
+			return ERR_PTR(-ENOMEM);
+		of->priv = it;
+		css_task_iter_start(&cgrp->self, it);
+	} else if (!(*pos)++) {
+		css_task_iter_end(it);
+		css_task_iter_start(&cgrp->self, it);
+	}
+
+	return cgroup_procs_next(s, NULL, NULL);
+}
+
+static void *cgroup_procs_start(struct seq_file *s, loff_t *pos)
+{
+	struct cgroup *cgrp = seq_css(s)->cgroup;
+
+	/*
+	 * All processes of a threaded subtree belong to the domain cgroup
+	 * of the subtree.  Only threads can be distributed across the
+	 * subtree.  Reject reads on cgroup.procs in the subtree proper.
+	 * They're always empty anyway.
+	 */
+	if (cgroup_is_threaded(cgrp))
+		return ERR_PTR(-EOPNOTSUPP);
+
+	return __cgroup_procs_start(s, pos, CSS_TASK_ITER_PROCS |
+					    CSS_TASK_ITER_THREADED);
+}
+
+static int cgroup_procs_show(struct seq_file *s, void *v)
+{
+	seq_printf(s, "%d\n", task_tgid_vnr(v));
+	return 0;
+}
+
+static void *cgroup_threads_start(struct seq_file *s, loff_t *pos)
+{
+	return __cgroup_procs_start(s, pos, 0);
+}
+
+static ssize_t cgroup_threads_write(struct kernfs_open_file *of,
+				    char *buf, size_t nbytes, loff_t off)
+{
+	struct cgroup *src_cgrp, *dst_cgrp;
+	struct task_struct *task;
+	ssize_t ret;
+
+	buf = strstrip(buf);
+
+	dst_cgrp = cgroup_kn_lock_live(of->kn, false);
+	if (!dst_cgrp)
+		return -ENODEV;
+
+	task = cgroup_procs_write_start(buf, false);
+	ret = PTR_ERR_OR_ZERO(task);
+	if (ret)
+		goto out_unlock;
+
+	/* find the source cgroup */
+	spin_lock_irq(&css_set_lock);
+	src_cgrp = task_cgroup_from_root(task, &cgrp_dfl_root);
+	spin_unlock_irq(&css_set_lock);
+
+	/* thread migrations follow the cgroup.procs delegation rule */
+	ret = cgroup_procs_write_permission(src_cgrp, dst_cgrp,
+					    of->file->f_path.dentry->d_sb);
+	if (ret)
+		goto out_finish;
+
+	/* and must be contained in the same domain */
+	ret = -EOPNOTSUPP;
+	if (src_cgrp->dom_cgrp != dst_cgrp->dom_cgrp)
+		goto out_finish;
+
+	ret = cgroup_attach_task(dst_cgrp, task, false);
+
+out_finish:
+	cgroup_procs_write_finish(task);
+out_unlock:
+	cgroup_kn_unlock(of->kn);
+
+	return ret ?: nbytes;
 }
 
 /*
@@ -5073,14 +5407,27 @@ static int cgroup_clone_children_write(struct cgroup_subsys_state *css,
 /* cgroup core interface files for the default hierarchy */
 static struct cftype cgroup_dfl_base_files[] = {
 	{
+		.name = "cgroup.type",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.seq_show = cgroup_type_show,
+		.write = cgroup_type_write,
+	},
+	{
 		.name = "cgroup.procs",
 		.file_offset = offsetof(struct cgroup, procs_file),
-		.seq_start = cgroup_pidlist_start,
-		.seq_next = cgroup_pidlist_next,
-		.seq_stop = cgroup_pidlist_stop,
-		.seq_show = cgroup_pidlist_show,
-		.private = CGROUP_FILE_PROCS,
+		.release = cgroup_procs_release,
+		.seq_start = cgroup_procs_start,
+		.seq_next = cgroup_procs_next,
+		.seq_show = cgroup_procs_show,
 		.write = cgroup_procs_write,
+	},
+	{
+		.name = "cgroup.threads",
+		.release = cgroup_procs_release,
+		.seq_start = cgroup_threads_start,
+		.seq_next = cgroup_procs_next,
+		.seq_show = cgroup_procs_show,
+		.write = cgroup_threads_write,
 	},
 	{
 		.name = "cgroup.controllers",
@@ -5921,10 +6268,16 @@ int __init cgroup_init(void)
 
 		cgrp_dfl_root.subsys_mask |= 1 << ss->id;
 
+		/* implicit controllers must be threaded too */
+		WARN_ON(ss->implicit_on_dfl && !ss->threaded);
+		
 		if (ss->implicit_on_dfl)
 			cgrp_dfl_implicit_ss_mask |= 1 << ss->id;
 		else if (!ss->dfl_cftypes)
 			cgrp_dfl_inhibit_ss_mask |= 1 << ss->id;
+
+		if (ss->threaded)
+			cgrp_dfl_threaded_ss_mask |= 1 << ss->id;
 
 		if (ss->dfl_cftypes == ss->legacy_cftypes) {
 			WARN_ON(cgroup_add_cftypes(ss, ss->dfl_cftypes));
@@ -6906,6 +7259,7 @@ struct cgroup_subsys debug_cgrp_subsys = {
 	.css_alloc = debug_css_alloc,
 	.css_free = debug_css_free,
 	.legacy_cftypes = debug_files,
+    debug_cgrp_subsys.threaded = true;
 };
 #endif /* CONFIG_CGROUP_DEBUG */
 
