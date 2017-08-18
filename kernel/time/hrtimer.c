@@ -1868,6 +1868,12 @@ static void migrate_hrtimer_list(struct hrtimer_clock_base *old_base,
 		timerqueue_del(&pinned, &timer->node);
 		enqueue_hrtimer(timer, old_base);
 	}
+
+#ifdef CONFIG_PREEMPT_RT_BASE
+	list_splice_tail(&old_base->expired, &new_base->expired);
+	if (!list_empty(&new_base->expired))
+		raise_softirq_irqoff(HRTIMER_SOFTIRQ);
+#endif
 }
 
 static void __migrate_hrtimers(unsigned int scpu, bool remove_pinned)
