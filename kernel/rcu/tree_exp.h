@@ -383,16 +383,22 @@ static void sync_rcu_exp_select_cpus(struct rcu_state *rsp,
 
 		/* Each pass checks a CPU for identity, offline, and idle. */
 		mask_ofl_test = 0;
-		for_each_leaf_node_possible_cpu(rnp, cpu) {
+		for_each_leaf_node_cpu_mask(rnp, cpu, rnp->expmask) {
+			unsigned long mask = leaf_node_cpu_bit(rnp, cpu);
 			struct rcu_data *rdp = per_cpu_ptr(rsp->rda, cpu);
-			struct rcu_dynticks *rdtp = &per_cpu(rcu_dynticks, cpu);
-			
-			rdp->exp_dynticks_snap =
-				atomic_add_return(0, &rdtp->dynticks);
+			struct rcu_dynticks *rdtp = per_cpu_ptr(&rcu_dynticks, cpu);
+			int snap;
+
 			if (raw_smp_processor_id() == cpu ||
-			    !(rdp->exp_dynticks_snap & 0x1) ||
-			    !(rnp->qsmaskinitnext & rdp->grpmask))
-				mask_ofl_test |= rdp->grpmask;
+			    !(rnp->qsmaskinitnext & mask)) {
+				mask_ofl_test |= mask;
+			} else {
+				snap = rcu_dynticks_snap(rdtp);
+				if (rcu_dynticks_in_eqs(snap))
+					mask_ofl_test |= mask;
+				else
+					rdp->exp_dynticks_snap = snap;
+			}
 		}
 		mask_ofl_ipi = rnp->expmask & ~mask_ofl_test;
 
@@ -406,7 +412,7 @@ static void sync_rcu_exp_select_cpus(struct rcu_state *rsp,
 		raw_spin_unlock_irqrestore_rcu_node(rnp, flags);
 
 		/* IPI the remaining CPUs for expedited quiescent state. */
-		for_each_leaf_node_possible_cpu(rnp, cpu) {
+		for_each_leaf_node_cpu_mask(rnp, cpu, rnp->expmask) {
 			unsigned long mask = leaf_node_cpu_bit(rnp, cpu);
 			struct rcu_data *rdp = per_cpu_ptr(rsp->rda, cpu);
 			struct rcu_dynticks *rdtp = &per_cpu(rcu_dynticks, cpu);
