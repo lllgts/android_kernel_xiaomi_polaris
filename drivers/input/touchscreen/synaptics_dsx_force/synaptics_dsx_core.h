@@ -39,6 +39,7 @@
 #define SYNAPTICS_DSX_DRIVER_PRODUCT (SYNAPTICS_DS4 | SYNAPTICS_DS5)
 #define SYNAPTICS_DSX_DRIVER_VERSION 0x2065
 
+#include <linux/pm_qos.h>
 #include <linux/version.h>
 #ifdef CONFIG_DRM
 #include <linux/notifier.h>
@@ -435,6 +436,8 @@ struct synaptics_rmi4_data {
 	struct pinctrl_state *pinctrl_state_active;
 	struct pinctrl_state *pinctrl_state_suspend;
 	struct synaptics_dsx_factory_param *factory_param;
+
+	struct pm_qos_request pm_qos_req;
 
 	struct completion dump_completion;
 #ifdef CONFIG_TOUCH_DEBUG_FS
