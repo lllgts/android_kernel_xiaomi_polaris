@@ -11,6 +11,7 @@
  */
 
 #include "sched.h"
+#include "walt.h"
 #include <linux/of.h>
 #include <linux/sched/core_ctl.h>
 #include <trace/events/sched.h>
@@ -26,7 +27,6 @@ unsigned int sysctl_sched_boost;
 static enum sched_boost_policy boost_policy;
 static enum sched_boost_policy boost_policy_dt = SCHED_BOOST_NONE;
 static DEFINE_MUTEX(boost_mutex);
-static unsigned int freq_aggr_threshold_backup;
 
 static inline void boost_kick(int cpu)
 {
@@ -117,8 +117,7 @@ static void _sched_set_boost(int old_val, int type)
 		else if (old_val == CONSERVATIVE_BOOST)
 			restore_cgroup_boost_settings();
 		else
-			update_freq_aggregate_threshold(
-				freq_aggr_threshold_backup);
+			walt_enable_frequency_aggregation(false);
 		break;
 
 	case FULL_THROTTLE_BOOST:
@@ -132,8 +131,7 @@ static void _sched_set_boost(int old_val, int type)
 		break;
 
 	case RESTRAINED_BOOST:
-		freq_aggr_threshold_backup =
-			update_freq_aggregate_threshold(1);
+			walt_enable_frequency_aggregation(true);
 		break;
 
 	default:
