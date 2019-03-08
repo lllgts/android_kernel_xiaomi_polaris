@@ -1887,15 +1887,16 @@ TRACE_EVENT(sched_overutilized,
 
 TRACE_EVENT(sched_get_nr_running_avg,
 
-	TP_PROTO(int cpu, int nr, int nr_misfit, int nr_max),
+	TP_PROTO(int cpu, int nr, int nr_misfit, int nr_max, int nr_scaled),
 
-	TP_ARGS(cpu, nr, nr_misfit, nr_max),
+	TP_ARGS(cpu, nr, nr_misfit, nr_max, nr_scaled),
 
 	TP_STRUCT__entry(
 		__field( int, cpu)
 		__field( int, nr)
 		__field( int, nr_misfit)
 		__field( int, nr_max)
+		__field( int, nr_scaled)
 		__array(	char,	comm,   TASK_COMM_LEN	)
 		__field(	pid_t,	pid			)
 		__field(	pid_t,	cur_pid			)
@@ -1924,12 +1925,13 @@ TRACE_EVENT(sched_get_nr_running_avg,
 		__entry->nr = nr;
 		__entry->nr_misfit = nr_misfit;
 		__entry->nr_max = nr_max;
+		__entry->nr_scaled = nr_scaled;
 	),
 
 	TP_printk("avg=%d big_avg=%d iowait_avg=%d max_nr=%u big_max_nr=%u"
 		" wc %llu ws %llu delta %llu event %d cpu %d cur_pid %d task %d (%s) ms %llu delta %llu demand %u sum %u irqtime %llu"
 		" cs %llu ps %llu util %llu cur_window %u prev_window %u active_wins %u",
-		__entry->cpu, __entry->nr, __entry->nr_misfit, __entry->nr_max,
+		__entry->cpu, __entry->nr, __entry->nr_misfit, __entry->nr_max, __entry->nr_scaled,
 		__entry->wallclock, __entry->win_start, __entry->delta,
 		__entry->evt, __entry->cpu, __entry->cur_pid,
 		__entry->pid, __entry->comm, __entry->mark_start,
