@@ -2624,6 +2624,9 @@ static struct sched_cluster *best_cluster(struct related_thread_group *grp,
 	struct sched_cluster *cluster = NULL;
 
 	for_each_sched_cluster(cluster) {
+		if (cluster == sched_cluster[MAX_NR_CLUSTERS - 1])
+			continue;
+			
 		if (group_will_fit(cluster, grp, total_demand, group_boost))
 			return cluster;
 	}
