@@ -3291,8 +3291,6 @@ void walt_irq_work(struct irq_work *irq_work)
 				if (rq->notif_pending) {
 					nflag |= SCHED_CPUFREQ_INTERCLUSTER_MIG;
 					rq->notif_pending = false;
-				} else {
-					nflag |= SCHED_CPUFREQ_FORCE_UPDATE;
 				}
 			}
 
