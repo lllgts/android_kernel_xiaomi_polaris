@@ -7436,22 +7436,6 @@ retry:
 			target_cpu = isolated_candidate;
 	}
 
-	/*
-	 * - It is possible for target and backup
-	 *   to select same CPU - if so, drop backup
-	 *
-	 * - The next step of energy evaluation includes
-	 *   prev_cpu. Drop target or backup if it is
-	 *   same as prev_cpu.
-	 */
-	if (*backup_cpu == target_cpu || *backup_cpu == prev_cpu)
-		*backup_cpu = -1;
-
-	if (target_cpu == prev_cpu) {
-		target_cpu = *backup_cpu;
-		*backup_cpu = -1;
-	}
-
 	trace_sched_find_best_target(p, prefer_idle, min_util, cpu,
 				     best_idle_cpu, best_active_cpu,
 				     target_cpu, *backup_cpu);
