@@ -6998,7 +6998,7 @@ static unsigned long cpu_estimated_capacity(int cpu, struct task_struct *p)
 
 static inline void adjust_cpus_for_packing(struct task_struct *p,
 			int *target_cpu, int *best_idle_cpu,
-			int target_cpus_count, int best_idle_cstate,
+		    int best_idle_cstate,
 			struct find_best_target_env *fbt_env)
 {
 	unsigned long estimated_capacity;
@@ -7007,13 +7007,10 @@ static inline void adjust_cpus_for_packing(struct task_struct *p,
 		return;
 
 	if (fbt_env->placement_boost || fbt_env->need_idle ||
-			best_idle_cstate == -1) {
+			best_idle_cstate <= 0) {
 		*target_cpu = -1;
 		return;
 	}
-	
-	if (target_cpus_count > 1)
-		return;
 
 	estimated_capacity = cpu_estimated_capacity(*target_cpu, p);
 	estimated_capacity = add_capacity_margin(estimated_capacity,
@@ -7081,7 +7078,6 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	int cpu, i;
 	long spare_cap, most_spare_cap = 0;
 	int most_spare_cap_cpu = -1;
-	unsigned int active_cpus_count = 0;
 	int isolated_candidate = -1;
 	int prev_cpu = task_cpu(p);
 
@@ -7335,8 +7331,6 @@ retry:
 			 * capacity.
 			 */
 
-			active_cpus_count++;
-
 			/* Favor CPUs with maximum spare capacity */
 			if (spare_cap < target_max_spare_cap)
 				continue;
@@ -7396,7 +7390,7 @@ retry:
 	} while (sg = sg->next, sg != sd->groups);
 
 	adjust_cpus_for_packing(p, &target_cpu, &best_idle_cpu,
-				active_cpus_count, best_idle_cstate, fbt_env);
+				            best_idle_cstate, fbt_env);
 
 	/*
 	 * For non latency sensitive tasks, cases B and C in the previous loop,
