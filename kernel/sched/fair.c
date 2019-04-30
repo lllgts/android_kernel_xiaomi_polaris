@@ -6996,31 +6996,35 @@ static unsigned long cpu_estimated_capacity(int cpu, struct task_struct *p)
 }
 #endif
 
-static bool is_packing_eligible(struct task_struct *p, int target_cpu,
-				struct find_best_target_env *fbt_env,
-				unsigned int target_cpus_count,
-				int best_idle_cstate)
+static inline void adjust_cpus_for_packing(struct task_struct *p,
+			int *target_cpu, int *best_idle_cpu,
+			int target_cpus_count,
+			struct find_best_target_env *fbt_env)
 {
 	unsigned long estimated_capacity;
 
-	if (fbt_env->placement_boost || fbt_env->need_idle)
-		return false;
+	if (*best_idle_cpu == -1 || *target_cpu == -1)
+		return;
 
-	if (best_idle_cstate == -1)
-		return false;
+	if (fbt_env->placement_boost || fbt_env->need_idle ||
+			idle_get_state_idx(cpu_rq(*best_idle_cpu)) == -1) {
+		*target_cpu = -1;
+		return;
+	}
+	
+	if (target_cpus_count > 1)
+		return;
 
-	if (target_cpus_count != 1)
-		return true;
-
-	estimated_capacity = cpu_estimated_capacity(target_cpu, p);
+	estimated_capacity = cpu_estimated_capacity(*target_cpu, p);
 	estimated_capacity = add_capacity_margin(estimated_capacity,
-						 target_cpu);
+						 *target_cpu);
 
 	/*
 	 * If there is only one active CPU and it is already above its current
 	 * capacity, avoid placing additional task on the CPU.
 	 */
-	return (estimated_capacity <= capacity_curr_of(target_cpu));
+	if (estimated_capacity > capacity_curr_of(*target_cpu))
+		    *target_cpu = -1;
 }
 
 static int start_cpu(struct task_struct *p, bool boosted,
@@ -7386,14 +7390,8 @@ retry:
 
 	} while (sg = sg->next, sg != sd->groups);
 
-	if (best_idle_cpu != -1 && !is_packing_eligible(p, target_cpu, fbt_env,
-					active_cpus_count, best_idle_cstate)) {
-		if (target_cpu == prev_cpu)
-			fbt_env->avoid_prev_cpu = true;
-
-		target_cpu = best_idle_cpu;
-		best_idle_cpu = -1;
-	}
+	adjust_cpus_for_packing(p, &target_cpu, &best_idle_cpu,
+				active_cpus_count, fbt_env);
 
 	/*
 	 * For non latency sensitive tasks, cases B and C in the previous loop,
