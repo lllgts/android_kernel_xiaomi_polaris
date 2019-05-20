@@ -88,7 +88,6 @@ struct sched_cluster {
 	int notifier_sent;
 	bool wake_up_idle;
 	u64 aggr_grp_load;
-	u64 coloc_boost_load;
 };
 
 extern unsigned int sched_disable_window_stats;
@@ -1948,6 +1947,7 @@ struct sched_walt_cpu_load {
 	unsigned long prev_window_util;
 	unsigned long nl;
 	unsigned long pl;
+	bool rtgb_active;
 	u64 ws;
 };
 
@@ -1989,6 +1989,7 @@ cpu_util_freq_pelt(int cpu)
 
 #ifdef CONFIG_SCHED_WALT
 extern u64 walt_load_reported_window;
+extern bool rtgb_active;
 
 static inline unsigned long
 __cpu_util_freq_walt(int cpu, struct sched_walt_cpu_load *walt_load)
@@ -2027,6 +2028,7 @@ __cpu_util_freq_walt(int cpu, struct sched_walt_cpu_load *walt_load)
 		walt_load->nl = nl;
 		walt_load->pl = pl;
 		walt_load->ws = walt_load_reported_window;
+		walt_load->rtgb_active = rtgb_active;
 	}
 
 	return (util >= capacity) ? capacity : util;
@@ -2863,8 +2865,6 @@ static inline enum sched_boost_policy task_boost_policy(struct task_struct *p)
 	return boost_on_big;
 }
 
-extern void walt_map_freq_to_load(void);
-
 static inline bool is_min_capacity_cluster(struct sched_cluster *cluster)
 {
 	return is_min_capacity_cpu(cluster_first_cpu(cluster));
@@ -3006,7 +3006,6 @@ static inline unsigned int power_cost(int cpu, bool max)
 	return SCHED_CAPACITY_SCALE;
 }
 
-static inline void walt_sched_energy_populated_callback(void) { }
 static inline void walt_update_min_max_capacity(void) { }
 
 static inline void walt_map_freq_to_load(void) { }
