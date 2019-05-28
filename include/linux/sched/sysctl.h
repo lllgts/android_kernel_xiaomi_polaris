@@ -146,6 +146,6 @@ extern int sysctl_numa_balancing(struct ctl_table *table, int write,
 extern int sysctl_schedstats(struct ctl_table *table, int write,
 				 void __user *buffer, size_t *lenp,
 				 loff_t *ppos);
-extern unsigned long *sched_busy_hysteresis_cpubits;
+extern unsigned int sysctl_sched_busy_hysteresis_enable_cpus;
 
 #endif /* _SCHED_SYSCTL_H */
