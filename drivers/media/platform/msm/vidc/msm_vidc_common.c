@@ -3864,10 +3864,7 @@ exit:
 				"Failed to move from state: %d to %d\n",
 				inst->state, state);
 		msm_comm_kill_session(inst);
-	} else {
-		trace_msm_vidc_common_state_change((void *)inst,
-				inst->state, state);
-	}
+	} 
 	return rc;
 }
 

@@ -2108,7 +2108,7 @@ static int _regulator_do_enable(struct regulator_dev *rdev)
 		delay = 0;
 	}
 
-	trace_regulator_enable(rdev_get_name(rdev));
+	//trace_regulator_enable(rdev_get_name(rdev));
 
 	if (rdev->desc->off_on_delay) {
 		/* if needed, keep a distance of off_on_delay from last time
@@ -2153,11 +2153,11 @@ static int _regulator_do_enable(struct regulator_dev *rdev)
 	/* Allow the regulator to ramp; it would be useful to extend
 	 * this for bulk operations so that the regulators can ramp
 	 * together.  */
-	trace_regulator_enable_delay(rdev_get_name(rdev));
+	//trace_regulator_enable_delay(rdev_get_name(rdev));
 
 	_regulator_enable_delay(delay);
 
-	trace_regulator_enable_complete(rdev_get_name(rdev));
+	//trace_regulator_enable_complete(rdev_get_name(rdev));
 
 	return 0;
 }
@@ -2243,7 +2243,7 @@ static int _regulator_do_disable(struct regulator_dev *rdev)
 {
 	int ret;
 
-	trace_regulator_disable(rdev_get_name(rdev));
+	//trace_regulator_disable(rdev_get_name(rdev));
 
 	if (rdev->ena_pin) {
 		if (rdev->ena_gpio_state) {
@@ -2265,7 +2265,7 @@ static int _regulator_do_disable(struct regulator_dev *rdev)
 	if (rdev->desc->off_on_delay)
 		rdev->last_off_jiffy = jiffies;
 
-	trace_regulator_disable_complete(rdev_get_name(rdev));
+	//trace_regulator_disable_complete(rdev_get_name(rdev));
 
 	return 0;
 }
@@ -2846,7 +2846,7 @@ static int _regulator_do_set_voltage(struct regulator_dev *rdev,
 	const struct regulator_ops *ops = rdev->desc->ops;
 	int old_uV = _regulator_get_voltage(rdev);
 
-	trace_regulator_set_voltage(rdev_get_name(rdev), min_uV, max_uV);
+	//trace_regulator_set_voltage(rdev_get_name(rdev), min_uV, max_uV);
 
 	min_uV += rdev->constraints->uV_offset;
 	max_uV += rdev->constraints->uV_offset;
@@ -2937,7 +2937,7 @@ static int _regulator_do_set_voltage(struct regulator_dev *rdev,
 	}
 
 out:
-	trace_regulator_set_voltage_complete(rdev_get_name(rdev), best_val);
+	//trace_regulator_set_voltage_complete(rdev_get_name(rdev), best_val);
 
 	return ret;
 }

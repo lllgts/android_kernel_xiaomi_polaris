@@ -930,7 +930,7 @@ void vb2_buffer_done(struct vb2_buffer *vb, enum vb2_buffer_state state)
 	atomic_dec(&q->owned_by_drv_count);
 	spin_unlock_irqrestore(&q->done_lock, flags);
 
-	trace_vb2_buf_done(q, vb);
+	//trace_vb2_buf_done(q, vb);
 
 	switch (state) {
 	case VB2_BUF_STATE_QUEUED:
@@ -1236,7 +1236,7 @@ static void __enqueue_in_driver(struct vb2_buffer *vb)
 	vb->state = VB2_BUF_STATE_ACTIVE;
 	atomic_inc(&q->owned_by_drv_count);
 
-	trace_vb2_buf_queue(q, vb);
+	//trace_vb2_buf_queue(q, vb);
 
 	/* sync buffers */
 	for (plane = 0; plane < vb->num_planes; ++plane)
@@ -1409,7 +1409,7 @@ int vb2_core_qbuf(struct vb2_queue *q, unsigned int index, void *pb)
 	if (pb)
 		call_void_bufop(q, copy_timestamp, vb, pb);
 
-	trace_vb2_qbuf(q, vb);
+	//trace_vb2_qbuf(q, vb);
 
 	/*
 	 * If already streaming, give the buffer to driver for processing.
@@ -1635,7 +1635,7 @@ int vb2_core_dqbuf(struct vb2_queue *q, unsigned int *pindex, void *pb,
 	list_del(&vb->queued_entry);
 	q->queued_count--;
 
-	trace_vb2_dqbuf(q, vb);
+	//trace_vb2_dqbuf(q, vb);
 
 	/* go back to dequeued state */
 	__vb2_dqbuf(vb);
