@@ -23,7 +23,6 @@
 #include <linux/cpufreq.h>
 #include <linux/list_sort.h>
 #include <linux/jiffies.h>
-#include <linux/sched/core_ctl.h>
 #include <trace/events/sched.h>
 #include "sched.h"
 #include "walt.h"
@@ -3455,6 +3454,67 @@ void walt_rotation_checkpoint(int nr_big)
 	}
 
 	walt_rotation_enabled = nr_big >= num_possible_cpus();
+}
+
+void walt_fill_ta_data(struct core_ctl_notif_data *data)
+{
+	struct related_thread_group *grp;
+	unsigned long flags;
+	u64 total_demand = 0, wallclock;
+	struct task_struct *p;
+	int min_cap_cpu, scale = 1024;
+	struct sched_cluster *cluster;
+	int i = 0;
+
+	grp = lookup_related_thread_group(DEFAULT_CGROUP_COLOC_ID);
+
+	raw_spin_lock_irqsave(&grp->lock, flags);
+	if (list_empty(&grp->tasks)) {
+		raw_spin_unlock_irqrestore(&grp->lock, flags);
+		goto fill_util;
+	}
+
+	wallclock = sched_ktime_clock();
+
+	list_for_each_entry(p, &grp->tasks, grp_list) {
+		if (p->ravg.mark_start < wallclock -
+		    (sched_ravg_window * sched_ravg_hist_size))
+			continue;
+
+		total_demand += p->ravg.coloc_demand;
+	}
+
+	raw_spin_unlock_irqrestore(&grp->lock, flags);
+
+	/*
+	 * Scale the total demand to the lowest capacity CPU and
+	 * convert into percentage.
+	 *
+	 * P = total_demand/sched_ravg_window * 1024/scale * 100
+	 */
+
+	min_cap_cpu = this_rq()->rd->min_cap_orig_cpu;
+	if (min_cap_cpu != -1)
+		scale = arch_scale_cpu_capacity(NULL, min_cap_cpu);
+
+	data->coloc_load_pct = div64_u64(total_demand * 1024 * 100,
+			       (u64)sched_ravg_window * scale);
+
+fill_util:
+	for_each_sched_cluster(cluster) {
+		int fcpu = cluster_first_cpu(cluster);
+
+		if (i == MAX_CLUSTERS)
+			break;
+
+		scale = arch_scale_cpu_capacity(NULL, fcpu);
+		data->ta_util_pct[i] = div64_u64(cluster->aggr_grp_load * 1024 *
+				       100, (u64)sched_ravg_window * scale);
+
+		scale = arch_scale_freq_capacity(NULL, fcpu);
+		data->cur_cap_pct[i] = (scale * 100)/1024;
+		i++;
+	}
 }
 
 int walt_proc_group_thresholds_handler(struct ctl_table *table, int write,
