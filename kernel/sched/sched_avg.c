@@ -29,7 +29,6 @@ static DEFINE_PER_CPU(u64, nr_big_prod_sum);
 static DEFINE_PER_CPU(u64, nr);
 static DEFINE_PER_CPU(u64, nr_max);
 
-static DEFINE_PER_CPU(unsigned long, iowait_prod_sum);
 static DEFINE_PER_CPU(spinlock_t, nr_lock) = __SPIN_LOCK_UNLOCKED(nr_lock);
 static s64 last_get_time;
 
@@ -85,7 +84,6 @@ void sched_get_nr_running_avg(int *avg, int *iowait_avg, int *big_avg,
 
 		per_cpu(nr_prod_sum, cpu) = 0;
 		per_cpu(nr_big_prod_sum, cpu) = 0;
-		per_cpu(iowait_prod_sum, cpu) = 0;
 
 		if (*max_nr < per_cpu(nr_max, cpu))
 			*max_nr = per_cpu(nr_max, cpu);
@@ -176,7 +174,6 @@ void sched_update_nr_prod(int cpu, long delta, bool inc)
 
 	per_cpu(nr_prod_sum, cpu) += nr_running * diff;
 	per_cpu(nr_big_prod_sum, cpu) += nr_eligible_big_tasks(cpu) * diff;
-	per_cpu(iowait_prod_sum, cpu) += nr_iowait_cpu(cpu) * diff;
 	spin_unlock_irqrestore(&per_cpu(nr_lock, cpu), flags);
 }
 EXPORT_SYMBOL(sched_update_nr_prod);
