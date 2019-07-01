@@ -32,9 +32,16 @@ struct cpuidle_state;
 extern __read_mostly bool sched_predl;
 extern unsigned int sched_smp_overlap_capacity;
 
+struct sched_walt_cpu_load {
+	unsigned long prev_window_util;
+	unsigned long nl;
+	unsigned long pl;
+	bool rtgb_active;
+	u64 ws;
+};
+
 #ifdef CONFIG_SCHED_WALT
 extern unsigned int sched_ravg_window;
-extern unsigned int walt_cpu_util_freq_divisor;
 
 struct walt_sched_stats {
 	int nr_big_tasks;
@@ -1820,6 +1827,10 @@ static inline int hrtick_enabled(struct rq *rq)
 
 #endif /* CONFIG_SCHED_HRTICK */
 
+unsigned long
+cpu_util_freq_walt(int cpu, struct sched_walt_cpu_load *walt_load);
+#define sched_ravg_window TICK_NSEC
+
 #ifdef CONFIG_SMP
 extern void sched_avg_update(struct rq *rq);
 
@@ -1938,14 +1949,6 @@ static inline unsigned long cpu_util(int cpu)
 	return __cpu_util(cpu, 0);
 }
 
-struct sched_walt_cpu_load {
-	unsigned long prev_window_util;
-	unsigned long nl;
-	unsigned long pl;
-	bool rtgb_active;
-	u64 ws;
-};
-
 static inline unsigned long cpu_util_cum(int cpu, int delta)
 {
 	u64 util = cpu_rq(cpu)->cfs.avg.util_avg;
@@ -1962,102 +1965,6 @@ static inline unsigned long cpu_util_cum(int cpu, int delta)
 	return (delta >= capacity) ? capacity : delta;
 }
 
-#ifdef CONFIG_SCHED_WALT
-u64 freq_policy_load(struct rq *rq);
-#endif
-
-static inline unsigned long
-cpu_util_freq_pelt(int cpu)
-{
-	struct rq *rq = cpu_rq(cpu);
-	u64 util = rq->cfs.avg.util_avg;
-	unsigned long capacity = capacity_orig_of(cpu);
-
-	util *= (100 + per_cpu(sched_load_boost, cpu));
-	do_div(util, 100);
-
-	return (util >= capacity) ? capacity : util;
-}
-
-#ifdef CONFIG_SCHED_WALT
-extern u64 walt_load_reported_window;
-extern bool rtgb_active;
-
-static inline unsigned long
-__cpu_util_freq_walt(int cpu, struct sched_walt_cpu_load *walt_load)
-{
-	u64 util, util_unboosted;
-	struct rq *rq = cpu_rq(cpu);
-	unsigned long capacity = capacity_orig_of(cpu);
-	int boost;
-
-	if (walt_disabled || !sysctl_sched_use_walt_cpu_util)
-		return cpu_util_freq_pelt(cpu);
-
-	boost = per_cpu(sched_load_boost, cpu);
-	util_unboosted = util = freq_policy_load(rq);
-	util = div64_u64(util * (100 + boost),
-			 walt_cpu_util_freq_divisor);
-
-	if (walt_load) {
-		u64 nl = cpu_rq(cpu)->nt_prev_runnable_sum +
-			rq->grp_time.nt_prev_runnable_sum;
-		u64 pl = rq->walt_stats.pred_demands_sum_scaled;
-
-		/* do_pl_notif() needs unboosted signals */
-		rq->old_busy_time = div64_u64(util_unboosted,
-					      sched_ravg_window >>
-					      SCHED_CAPACITY_SHIFT);
-		rq->old_estimated_time = pl;
-
-		nl = div64_u64(nl * (100 + boost),
-			       walt_cpu_util_freq_divisor);
-		pl = div64_u64(pl * (100 + boost), 100);
-
-		walt_load->prev_window_util = util;
-		walt_load->nl = nl;
-		walt_load->pl = pl;
-		walt_load->ws = walt_load_reported_window;
-		walt_load->rtgb_active = rtgb_active;
-	}
-
-	return (util >= capacity) ? capacity : util;
-}
-
-#define ADJUSTED_ASYM_CAP_CPU_UTIL(orig, other, x)	\
-			(max(orig, mult_frac(other, x, 100)))
-
-static inline unsigned long
-cpu_util_freq_walt(int cpu, struct sched_walt_cpu_load *walt_load)
-{
-	struct sched_walt_cpu_load wl_other = {0};
-	unsigned long util = 0, util_other = 0;
-	unsigned long capacity = capacity_orig_of(cpu);
-	int i, mpct = sysctl_sched_asym_cap_sibling_freq_match_pct;
-
-	if (!cpumask_test_cpu(cpu, &asym_cap_sibling_cpus))
-		return __cpu_util_freq_walt(cpu, walt_load);
-
-	for_each_cpu(i, &asym_cap_sibling_cpus) {
-		if (i == cpu)
-			util = __cpu_util_freq_walt(cpu, walt_load);
-		else
-			util_other = __cpu_util_freq_walt(i, &wl_other);
-	}
-
-	if (cpu == cpumask_last(&asym_cap_sibling_cpus))
-		mpct = 100;
-
-	util = ADJUSTED_ASYM_CAP_CPU_UTIL(util, util_other, mpct);
-	walt_load->prev_window_util = util;
-
-	walt_load->nl = ADJUSTED_ASYM_CAP_CPU_UTIL(walt_load->nl, wl_other.nl,
-						   mpct);
-	walt_load->pl = ADJUSTED_ASYM_CAP_CPU_UTIL(walt_load->pl, wl_other.pl,
-						   mpct);
-
-	return (util >= capacity) ? capacity : util;
-}
 
 static inline unsigned long
 cpu_util_freq(int cpu, struct sched_walt_cpu_load *walt_load)
@@ -2065,18 +1972,7 @@ cpu_util_freq(int cpu, struct sched_walt_cpu_load *walt_load)
 	return cpu_util_freq_walt(cpu, walt_load);
 }
 
-#else
-
-static inline unsigned long
-cpu_util_freq(int cpu, struct sched_walt_cpu_load *walt_load)
-{
-	return cpu_util_freq_pelt(cpu);
-}
-
-#define sched_ravg_window TICK_NSEC
 #define sysctl_sched_use_walt_cpu_util 0
-
-#endif /* CONFIG_SCHED_WALT */
 
 extern unsigned long
 boosted_cpu_util(int cpu, struct sched_walt_cpu_load *walt_load);
