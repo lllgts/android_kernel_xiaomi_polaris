@@ -27,6 +27,7 @@ extern unsigned int sysctl_sched_capacity_margin_down;
 
 #ifdef CONFIG_SCHED_WALT
 extern unsigned int sysctl_sched_init_task_load_pct;
+extern unsigned int sysctl_sched_user_hint;
 extern unsigned int sysctl_sched_cpu_high_irqload;
 extern unsigned int sysctl_sched_use_walt_cpu_util;
 extern unsigned int sysctl_sched_use_walt_task_util;
@@ -40,6 +41,10 @@ extern unsigned int sysctl_sched_asym_cap_sibling_freq_match_pct;
 extern unsigned int sysctl_sched_coloc_downmigrate_ns;
 extern int
 walt_proc_group_thresholds_handler(struct ctl_table *table, int write,
+			 void __user *buffer, size_t *lenp,
+			 loff_t *ppos);
+extern int
+walt_proc_user_hint_handler(struct ctl_table *table, int write,
 			 void __user *buffer, size_t *lenp,
 			 loff_t *ppos);
 
