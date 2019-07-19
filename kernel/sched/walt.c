@@ -2559,7 +2559,7 @@ void update_cluster_topology(void)
 	INIT_LIST_HEAD(&new_head);
 
 	for_each_cpu(i, &cpus) {
-		cluster_cpus = cpu_possible_coregroup_mask(i);
+		cluster_cpus = topology_possible_sibling_cpumask(i);
 		if (cpumask_empty(cluster_cpus)) {
 			WARN(1, "WALT: Invalid cpu topology!!");
 			cleanup_clusters(&new_head);
