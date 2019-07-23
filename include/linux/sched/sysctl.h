@@ -41,6 +41,10 @@ extern unsigned int sysctl_sched_min_task_util_for_colocation;
 extern unsigned int sysctl_sched_asym_cap_sibling_freq_match_pct;
 extern unsigned int sysctl_sched_coloc_downmigrate_ns;
 extern unsigned int sysctl_sched_task_unfilter_nr_windows;
+extern unsigned int sysctl_sched_busy_hyst_enable_cpus;
+extern unsigned int sysctl_sched_busy_hyst;
+extern unsigned int sysctl_sched_coloc_busy_hyst_enable_cpus;
+extern unsigned int sysctl_sched_coloc_busy_hyst;
 
 extern int
 walt_proc_group_thresholds_handler(struct ctl_table *table, int write,
@@ -71,16 +75,14 @@ extern unsigned int sysctl_numa_balancing_scan_period_min;
 extern unsigned int sysctl_numa_balancing_scan_period_max;
 extern unsigned int sysctl_numa_balancing_scan_size;
 
-#ifdef CONFIG_SCHED_DEBUG
 extern __read_mostly unsigned int sysctl_sched_migration_cost;
 extern __read_mostly unsigned int sysctl_sched_nr_migrate;
 extern __read_mostly unsigned int sysctl_sched_time_avg;
 extern unsigned int sysctl_sched_shares_window;
-
 int sched_proc_update_handler(struct ctl_table *table, int write,
 		void __user *buffer, size_t *length,
 		loff_t *ppos);
-#endif
+
 
 extern int sched_migrate_notify_proc_handler(struct ctl_table *table,
 		int write, void __user *buffer, size_t *lenp, loff_t *ppos);
@@ -146,6 +148,4 @@ extern int sysctl_numa_balancing(struct ctl_table *table, int write,
 extern int sysctl_schedstats(struct ctl_table *table, int write,
 				 void __user *buffer, size_t *lenp,
 				 loff_t *ppos);
-extern unsigned int sysctl_sched_busy_hysteresis_enable_cpus;
-
 #endif /* _SCHED_SYSCTL_H */
