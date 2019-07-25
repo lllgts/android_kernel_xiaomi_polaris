@@ -148,6 +148,7 @@ static int six_hundred_forty_kb = 640 * 1024;
 #ifdef CONFIG_SCHED_WALT
 const int sched_user_hint_max = 1000;
 #endif
+static int two_hundred_fifty_five = 255;
 /* this is needed for the proc_doulongvec_minmax of vm_dirty_bytes */
 static unsigned long dirty_bytes_min = 2 * PAGE_SIZE;
 
@@ -441,7 +442,15 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
 	},
-
+	{
+		.procname	= "sched_task_unfilter_nr_windows",
+		.data		= &sysctl_sched_task_unfilter_nr_windows,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler   = proc_dointvec_minmax,
+		.extra1         = &zero,
+		.extra2		= &two_hundred_fifty_five,
+	},
 #endif
 	{
 		.procname	= "sched_upmigrate",
