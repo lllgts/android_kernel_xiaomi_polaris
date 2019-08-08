@@ -6988,6 +6988,7 @@ struct find_best_target_env {
 	int placement_boost;
 	bool avoid_prev_cpu;
 	int start_cpu;
+	bool boosted;
 };
 
 #ifdef CONFIG_SCHED_WALT
@@ -7080,7 +7081,7 @@ static int get_start_cpu(struct task_struct *p)
 
 unsigned int sched_smp_overlap_capacity;
 static inline int find_best_target(struct task_struct *p, int *backup_cpu,
-				   bool boosted, bool prefer_idle,
+				   bool prefer_idle,
 				   struct find_best_target_env *fbt_env)
 {
 	unsigned long min_util = boosted_task_util(p);
@@ -7101,6 +7102,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	int most_spare_cap_cpu = -1;
 	int isolated_candidate = -1;
 	int prev_cpu = task_cpu(p);
+	bool boosted = fbt_env->boosted;
 
 	*backup_cpu = -1;
 
@@ -7589,6 +7591,7 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu, int sync
 	if (sched_feat(EAS_USE_NEED_IDLE) && prefer_idle) {
 		fbt_env.need_idle = true;
 		fbt_env.start_cpu = start_cpu;
+		fbt_env.boosted = boosted;
 		prefer_idle = false;
 	} else {
 		fbt_env.need_idle = wake_to_idle(p);
