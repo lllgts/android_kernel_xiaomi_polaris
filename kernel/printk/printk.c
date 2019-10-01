@@ -781,6 +781,7 @@ static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 		}
 		}
 		}
+		}
 	}
 
 	printk_emit(facility, level, NULL, 0, "%s", line);
