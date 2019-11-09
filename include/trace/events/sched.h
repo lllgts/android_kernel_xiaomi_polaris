@@ -333,7 +333,7 @@ TRACE_EVENT(sched_update_task_ravg,
 		__dynamic_array(u32,	prev_sum, nr_cpu_ids	)
 		__field(	u64,	nt_cs			)
 		__field(	u64,	nt_ps			)
-		__field(	u32,	active_windows		)
+		__field(	u64,	active_time		)
 		__field(	u32,	curr_top		)
 		__field(	u32,	prev_top		)
 	),
@@ -367,7 +367,7 @@ TRACE_EVENT(sched_update_task_ravg,
 		__window_data(__get_dynamic_array(prev_sum), p->ravg.prev_window_cpu);
 		__entry->nt_cs		= rq->nt_curr_runnable_sum;
 		__entry->nt_ps		= rq->nt_prev_runnable_sum;
-		__entry->active_windows	= p->ravg.active_windows;
+		__entry->active_time	= p->ravg.active_time;
 		__entry->curr_top	= rq->curr_top;
 		__entry->prev_top	= rq->prev_top;
 	),
@@ -384,7 +384,7 @@ TRACE_EVENT(sched_update_task_ravg,
 		__entry->prev_window,
 		__window_print(p, __get_dynamic_array(prev_sum), nr_cpu_ids),
 		__entry->nt_cs, __entry->nt_ps,
-		__entry->active_windows, __entry->grp_cs,
+		__entry->active_time, __entry->grp_cs,
 		__entry->grp_ps, __entry->grp_nt_cs, __entry->grp_nt_ps,
 		__entry->curr_top, __entry->prev_top)
 );
@@ -1918,7 +1918,7 @@ TRACE_EVENT(sched_get_nr_running_avg,
 		__field(	u32,	prev_window		)
 		__field(	u64,	nt_cs			)
 		__field(	u64,	nt_ps			)
-		__field(	u32,	active_windows		)
+		__field(	u32,	active_time		)
 	),
 
 	TP_fast_assign(
@@ -1941,7 +1941,7 @@ TRACE_EVENT(sched_get_nr_running_avg,
 		__entry->sum, __entry->irqtime,
 		__entry->cs, __entry->ps, __entry->util,
 		__entry->curr_window, __entry->prev_window,
-		  __entry->active_windows
+		  __entry->active_time
 		)
 );
 
