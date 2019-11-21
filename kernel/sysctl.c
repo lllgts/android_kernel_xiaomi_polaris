@@ -144,6 +144,7 @@ static int ten_thousand = 10000;
 #ifdef CONFIG_PERF_EVENTS
 static int six_hundred_forty_kb = 640 * 1024;
 #endif
+static int __maybe_unused two_hundred_million = 200000000;
 
 #ifdef CONFIG_SCHED_WALT
 const int sched_user_hint_max = 1000;
@@ -456,13 +457,13 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 	},
 	{
-		.procname	= "sched_task_unfilter_nr_windows",
-		.data		= &sysctl_sched_task_unfilter_nr_windows,
+		.procname	= "sched_task_unfilter_period",
+		.data		= &sysctl_sched_task_unfilter_period,
 		.maxlen		= sizeof(unsigned int),
 		.mode		= 0644,
 		.proc_handler   = proc_dointvec_minmax,
-		.extra1         = &zero,
-		.extra2		= &two_hundred_fifty_five,
+		.extra1         = &one,
+		.extra2		= &two_hundred_million,
 	},
 	{
 		.procname	= "sched_busy_hysteresis_enable_cpus",
