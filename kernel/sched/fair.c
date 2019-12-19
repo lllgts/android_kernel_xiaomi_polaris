@@ -7560,7 +7560,7 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu, int sync
 	int target_cpu;
 	int backup_cpu = -1;
 	int next_cpu = -1;
-	bool is_rtg;
+	bool is_rtg, curr_is_rtg;
 	struct find_best_target_env fbt_env;
 	u64 start_t = 0;
 	int fastpath = 0;
@@ -7570,6 +7570,7 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu, int sync
 		return -1;
 
 	is_rtg = task_in_related_thread_group(p);
+	curr_is_rtg = task_in_related_thread_group(cpu_rq(cpu)->curr);
 	if (trace_sched_task_util_enabled())
 		start_t = sched_clock();
 
@@ -7596,7 +7597,7 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu, int sync
 	fbt_env.placement_boost = task_boost_policy(p);
 	fbt_env.avoid_prev_cpu = false;
 
-	if (prefer_idle || fbt_env.need_idle)
+	if (sync && (prefer_idle || (is_rtg && curr_is_rtg)))
 		sync = 0;
 
 	if (sysctl_sched_sync_hint_enable && sync) {
