@@ -6212,6 +6212,7 @@ static int __init pcie_init(void)
 	pcie_drv.rc_num = 0;
 	mutex_init(&pcie_drv.drv_lock);
 
+#ifdef CONFIG_IPC_LOGGING
 	for (i = 0; i < MAX_RC_NUM; i++) {
 #ifdef CONFIG_IPC_LOGGING
 		snprintf(rc_name, MAX_RC_NAME_LEN, "pcie%d-short", i);
@@ -6266,6 +6267,7 @@ static int __init pcie_init(void)
 		msm_pcie_dev_tbl[i].event_reg = NULL;
 		msm_pcie_dev_tbl[i].registered = true;
 	}
+#endif
 
 	msm_pcie_debugfs_init();
 
