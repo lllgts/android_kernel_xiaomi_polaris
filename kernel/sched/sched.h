@@ -1683,6 +1683,9 @@ extern struct dl_bandwidth def_dl_bandwidth;
 extern void init_dl_bandwidth(struct dl_bandwidth *dl_b, u64 period, u64 runtime);
 extern void init_dl_task_timer(struct sched_dl_entity *dl_se);
 
+#define MAX_BW_BITS		(64 - BW_SHIFT)
+#define MAX_BW_USEC		((1UL << MAX_BW_BITS) - 1)
+
 unsigned long to_ratio(u64 period, u64 runtime);
 
 extern void init_entity_runnable_average(struct sched_entity *se);
