@@ -331,6 +331,8 @@ struct cfs_bandwidth {
 	u64 quota, runtime;
 	s64 hierarchical_quota;
 	u64 runtime_expires;
+	u64			burst;
+	u64			buffer;
 
 	int idle, period_active;
 	struct hrtimer period_timer, slack_timer;
