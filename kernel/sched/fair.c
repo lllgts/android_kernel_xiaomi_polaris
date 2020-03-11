@@ -4104,13 +4104,19 @@ static inline u64 sched_cfs_bandwidth_slice(void)
  */
 void __refill_cfs_bandwidth_runtime(struct cfs_bandwidth *cfs_b, u64 overrun)
 {
-	u64 refill;
+	u64 refill, runtime;
 
 	if (cfs_b->quota != RUNTIME_INF) {
 
 		if (!sysctl_sched_cfs_bw_burst_enabled) {
 			cfs_b->runtime = cfs_b->quota;
 			return;
+		}
+
+		runtime = cfs_b->previous_runtime - cfs_b->runtime;
+		if (runtime > cfs_b->quota) {
+			cfs_b->burst_time += runtime - cfs_b->quota;
+			cfs_b->nr_burst++;
 		}
 
 		overrun = min(overrun, cfs_b->max_overrun);
@@ -4127,6 +4133,8 @@ void __refill_cfs_bandwidth_runtime(struct cfs_bandwidth *cfs_b, u64 overrun)
 			 */
 			cfs_b->runtime = RUNTIME_INF;
 		}
+
+		cfs_b->previous_runtime = cfs_b->runtime;
 	}
 }
 
