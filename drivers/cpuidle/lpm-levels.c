@@ -555,6 +555,24 @@ static inline bool is_cpu_biased(int cpu)
 	return (now - last) < BIAS_HYST;
 }
 
+static inline bool lpm_disallowed(s64 sleep_us, int cpu, struct lpm_cpu *pm_cpu)
+{
+	uint64_t bias_time = 0;
+
+	if (sleep_disabled && !cpu_isolated(cpu))
+		return true;
+
+	if (is_cpu_biased(cpu, &bias_time) && (!cpu_isolated(cpu))) {
+		pm_cpu->bias = bias_time;
+		return true;
+	}
+
+	if (sleep_us < 0)
+		return true;
+
+	return false;
+}
+
 static int cpu_power_select(struct cpuidle_device *dev,
 		struct lpm_cpu *cpu)
 {
@@ -572,24 +590,16 @@ static int cpu_power_select(struct cpuidle_device *dev,
 	uint32_t *min_residency = get_per_cpu_min_residency(dev->cpu);
 	uint32_t *max_residency = get_per_cpu_max_residency(dev->cpu);
 
-	if (((sleep_disabled || sleep_disabled_touch) && !cpu_isolated(dev->cpu)) || sleep_us < 0)
-		return best_level;
+	if (lpm_disallowed(sleep_us, dev->cpu, cpu))
+		goto done_select;
 
 	idx_restrict = cpu->nlevels + 1;
-
 	next_event_us = (uint32_t)(ktime_to_us(get_next_event_time(dev->cpu)));
-
-	if (is_cpu_biased(dev->cpu) && (!cpu_isolated(dev->cpu)))
-		goto done_select;
 
 	for (i = 0; i < cpu->nlevels; i++) {
 		struct lpm_cpu_level *level = &cpu->levels[i];
 		struct power_params *pwr_params = &level->pwr;
-		bool allow;
-
-		allow = i ? lpm_cpu_mode_allow(dev->cpu, i, true) : true;
-
-		if (!allow)
+		if (!lpm_cpu_mode_allow(dev->cpu, i, true))
 			continue;
 
 		lvl_latency_us = pwr_params->latency_us;
