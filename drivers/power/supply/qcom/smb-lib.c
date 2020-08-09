@@ -21,6 +21,7 @@
 #include <linux/irq.h>
 #include <linux/pmic-voter.h>
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include "smb-lib.h"
 #include "smb-reg.h"
 #include "battery.h"
@@ -41,7 +42,7 @@
 				__func__, ##__VA_ARGS__);	\
 	} while (0)
 
-bool skip_thermal = false;
+bool skip_thermal = true;
 module_param(skip_thermal, bool, 0644);
 
 static bool off_charge_flag;
@@ -3434,27 +3435,36 @@ int smblib_get_prop_die_health(struct smb_charger *chg,
 	return 0;
 }
 
-#define SDP_CURRENT_UA			500000
-#define CDP_CURRENT_UA			1500000
-#define DCP_CURRENT_UA			1800000
-#define HVDCP2_CURRENT_UA		1500000
-#define HVDCP3_CURRENT_UA		2750000
-#define TYPEC_DEFAULT_CURRENT_UA	900000
-#define TYPEC_MEDIUM_CURRENT_UA		1500000
-#define TYPEC_HIGH_CURRENT_UA		3000000
+static unsigned int sdp_current_ua = 500000;
+static unsigned int cdp_current_ua = 1500000;
+static unsigned int dcp_current_ua = 1800000;
+static unsigned int hvdcp2_current_ua = 1500000;
+static unsigned int hvdcp3_current_ua = 3000000;
+static unsigned int typec_default_current_ua = 900000;
+static unsigned int typec_medium_current_ua = 1500000;
+static unsigned int typec_high_current_ua = 3000000;
+module_param(dcp_current_ua, uint, 0755);
+module_param(hvdcp2_current_ua, uint, 0755);
+module_param(hvdcp3_current_ua, uint, 0755);
+module_param(sdp_current_ua, uint, 0755);
+module_param(cdp_current_ua, uint, 0755);
+module_param(typec_default_current_ua, uint, 0755);
+module_param(typec_medium_current_ua, uint, 0755);
+module_param(typec_high_current_ua, uint, 0755);
+
 static int get_rp_based_dcp_current(struct smb_charger *chg, int typec_mode)
 {
 	int rp_ua;
 
 	switch (typec_mode) {
 	case POWER_SUPPLY_TYPEC_SOURCE_HIGH:
-		rp_ua = TYPEC_HIGH_CURRENT_UA;
+		rp_ua = typec_high_current_ua;
 		break;
 	case POWER_SUPPLY_TYPEC_SOURCE_MEDIUM:
 	case POWER_SUPPLY_TYPEC_SOURCE_DEFAULT:
 	/* fall through */
 	default:
-		rp_ua = DCP_CURRENT_UA;
+		rp_ua = dcp_current_ua;
 	}
 
 	return rp_ua;
@@ -4030,25 +4040,25 @@ int smblib_get_charge_current(struct smb_charger *chg,
 
 	/* QC 2.0 adapter*/
 	if (apsd_result->bit & QC_2P0_BIT) {
-		*total_current_ua = HVDCP2_CURRENT_UA;
+		*total_current_ua = hvdcp2_current_ua;
 		return 0;
 	}
 
 	/* QC 3.0 adapter */
 	if (apsd_result->bit & QC_3P0_BIT) {
-		*total_current_ua = HVDCP3_CURRENT_UA;
+		*total_current_ua = hvdcp3_current_ua;
 		return 0;
 	}
 
 	if (non_compliant) {
 		switch (apsd_result->bit) {
 		case CDP_CHARGER_BIT:
-			current_ua = CDP_CURRENT_UA;
+			current_ua = cdp_current_ua;
 			break;
 		case DCP_CHARGER_BIT:
 		case OCP_CHARGER_BIT:
 		case FLOAT_CHARGER_BIT:
-			current_ua = DCP_CURRENT_UA;
+			current_ua = dcp_current_ua;
 			break;
 		default:
 			current_ua = 0;
@@ -4063,7 +4073,7 @@ int smblib_get_charge_current(struct smb_charger *chg,
 	case POWER_SUPPLY_TYPEC_SOURCE_DEFAULT:
 		switch (apsd_result->bit) {
 		case CDP_CHARGER_BIT:
-			current_ua = CDP_CURRENT_UA;
+			current_ua = cdp_current_ua;
 			break;
 		case DCP_CHARGER_BIT:
 		case OCP_CHARGER_BIT:
@@ -4076,10 +4086,10 @@ int smblib_get_charge_current(struct smb_charger *chg,
 		}
 		break;
 	case POWER_SUPPLY_TYPEC_SOURCE_MEDIUM:
-		current_ua = TYPEC_MEDIUM_CURRENT_UA;
+		current_ua = typec_medium_current_ua;
 		break;
 	case POWER_SUPPLY_TYPEC_SOURCE_HIGH:
-		current_ua = TYPEC_HIGH_CURRENT_UA;
+		current_ua = typec_high_current_ua;
 		break;
 	case POWER_SUPPLY_TYPEC_NON_COMPLIANT:
 	case POWER_SUPPLY_TYPEC_NONE:
@@ -4814,16 +4824,16 @@ static void smblib_handle_hvdcp_3p0_auth_done(struct smb_charger *chg,
 
 	if (apsd_result->bit & QC_2P0_BIT) {
 		if (!chg->unstandard_hvdcp)
-			current_ua = HVDCP2_CURRENT_UA;
+			current_ua = hvdcp2_current_ua;
 		else
-			current_ua = DCP_CURRENT_UA;
+			current_ua = dcp_current_ua;
 		if (!chg->check_vbus_once) {
 			schedule_delayed_work(&chg->check_vbus_work,
 					msecs_to_jiffies(CHECK_VBUS_WORK_DELAY_MS));
 			chg->check_vbus_once = true;
 		}
 	} else if (apsd_result->bit & QC_3P0_BIT) {
-		current_ua = HVDCP3_CURRENT_UA;
+		current_ua = hvdcp3_current_ua;
 	}
 
 	vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, current_ua);
