@@ -15,6 +15,14 @@ source "drivers/input/touchscreen/fts/Kconfig"
 source "drivers/input/touchscreen/fts_521/Kconfig"
 source "drivers/input/touchscreen/nt36xxx/Kconfig"
 source "drivers/input/touchscreen/synaptics_dsx_2.6/Kconfig"
+source "drivers/input/touchscreen/xiaomi/Kconfig"
+
+config SECURE_TOUCH
+	bool "Secure Touch"
+	depends on TOUCHSCREEN_ST_FTS_V521 || TOUCHSCREEN_SYNAPTICS_DSX_FORCE
+
+config I2C_BY_DMA
+	bool "I2C BY DMA"
 
 config TOUCHSCREEN_PROPERTIES
 	def_tristate INPUT
