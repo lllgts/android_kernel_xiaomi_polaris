@@ -33,29 +33,9 @@
 	};
 };
 
-&red_led {
-	linux,name = "white";
-	qcom,start-idx = <1>;
-	qcom,idx-len = <11>;
-	qcom,duty-pcts = [00 01 02 03 04 05 06];
-	qcom,lut-flags = <0x1f>;
-	qcom,pause-lo = <2000>;
-	qcom,pause-hi = <1000>;
-	qcom,ramp-step-ms = <100>;
-	qcom,use-blink;
-	status = "okay";
-};
-
-&green_led {
-	status = "disabled";
-};
-
-&blue_led {
-	status = "disabled";
-};
-
 &soc {
 	restart@10ac000 {
 		qcom,force-warm-reboot;
 	};
 };
+
