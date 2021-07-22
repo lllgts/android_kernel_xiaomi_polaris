@@ -206,6 +206,13 @@ static inline int ion_phys(struct ion_client *client, void *handle,
 }
 
 /**
+ * ion_device_add_heap - adds a heap to the ion device
+ * @dev:		the device
+ * @heap:		the heap to add
+ */
+void ion_add_heap(struct ion_device *idev, struct ion_heap *heap);
+
+/**
  * ion_map_kernel - create mapping for the given handle
  * @client:	the client
  * @handle:	handle to map
