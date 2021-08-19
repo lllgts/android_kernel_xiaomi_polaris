@@ -5,6 +5,8 @@ ccflags-y += -Idrivers/gpu/drm/msm/sde
 ccflags-y += -Idrivers/media/platform/msm/sde/rotator
 ccflags-y += -Idrivers/gpu/drm/msm/hdmi
 
+ccflags-y += -Ofast
+
 msm_drm-y := \
 	sde/sde_crtc.o \
 	sde/sde_encoder.o \
