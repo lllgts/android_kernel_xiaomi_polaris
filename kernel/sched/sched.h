@@ -1661,7 +1661,6 @@ static inline int idle_get_state_idx(struct rq *rq)
 }
 #endif
 
-extern void sysrq_sched_debug_show(void);
 extern void sched_init_granularity(void);
 extern void update_max_interval(void);
 

@@ -811,16 +811,6 @@ static int sched_debug_show(struct seq_file *m, void *v)
 	return 0;
 }
 
-void sysrq_sched_debug_show(void)
-{
-	int cpu;
-
-	sched_debug_header(NULL);
-	for_each_online_cpu(cpu)
-		print_cpu(NULL, cpu);
-
-}
-
 /*
  * This itererator needs some explanation.
  * It returns 1 for the header position.
