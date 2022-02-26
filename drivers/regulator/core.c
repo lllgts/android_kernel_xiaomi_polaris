@@ -4798,7 +4798,7 @@ static void regulator_summary_show_subtree(struct seq_file *s,
 
 		switch (rdev->desc->type) {
 		case REGULATOR_VOLTAGE:
-			seq_printf(s, "%37dmV %5dmV",
+			seq_printf(s, "%25dmV %5dmV",
 				   consumer->min_uV / 1000,
 				   consumer->max_uV / 1000);
 			break;
