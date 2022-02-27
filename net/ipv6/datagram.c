@@ -256,6 +256,7 @@ ipv4_connected:
 	 */
 
 	err = ip6_datagram_dst_update(sk, true);
+	if (err) {
 		/* Restore the socket peer info, to keep it consistent with
 		 * the old socket state
 		 */
