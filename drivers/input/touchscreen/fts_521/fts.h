@@ -39,6 +39,7 @@
 #include "fts_lib/ftsSoftware.h"
 #include "fts_lib/ftsHardware.h"
 #include <linux/completion.h>
+#include <linux/pm_qos.h>
 /****************** CONFIGURATION SECTION ******************/
 /** @defgroup conf_section	 Driver Configuration Section
 * Settings of the driver code in order to suit the HW set up and the application behavior
@@ -292,6 +293,7 @@ struct fts_ts_info {
 	struct work_struct cmd_update_work;
 	struct workqueue_struct *event_wq;
 	struct workqueue_struct *touch_feature_wq;
+	struct pm_qos_request pm_qos_req;
 
 #ifndef FW_UPDATE_ON_PROBE
 	struct delayed_work fwu_work;
