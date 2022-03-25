@@ -838,7 +838,7 @@
 
 		trips {
 			active-config0 {
-					temperature = <11500>;
+					temperature = <115000>;
 					hysteresis = <1000>;
 					type = "passive";
 			};
