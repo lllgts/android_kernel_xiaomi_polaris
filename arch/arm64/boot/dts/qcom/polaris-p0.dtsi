@@ -787,14 +787,14 @@
 &thermal_zones {
 	xo_therm {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
-		thermal-sensors = <&pm8998_adc_tm 0x4c>;
+		polling-delay = <100>;
+		thermal-sensors = <>;
 		thermal-governor = "user_space";
 
 		trips {
 			active-config0 {
 				temperature = <115000>;
-				hysteresis = <1000>;
+				hysteresis = <10>;
 				type = "passive";
 			};
 		};
@@ -802,14 +802,14 @@
 
 	cam_therm0 {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
-		thermal-sensors = <&pm8998_adc_tm 0x4d>;
+		polling-delay = <100>;
+		thermal-sensors = <>;
 		thermal-governor = "user_space";
 
 		trips {
 			active-config0 {
 					temperature = <115000>;
-					hysteresis = <1000>;
+					hysteresis = <10>;
 					type = "passive";
 			};
 		};
@@ -817,14 +817,14 @@
 
 	cam_therm1 {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
-		thermal-sensors = <&pm8998_adc_tm 0x4e>;
+		polling-delay = <100>;
+		thermal-sensors = <>;
 		thermal-governor = "user_space";
 
 		trips {
 			active-config0 {
 					temperature = <115000>;
-					hysteresis = <1000>;
+					hysteresis = <10>;
 					type = "passive";
 			};
 		};
@@ -832,14 +832,14 @@
 
 	pa_therm0 {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
-		thermal-sensors = <&pm8998_adc_tm 0x4f>;
+		polling-delay = <100>;
+		thermal-sensors = <>;
 		thermal-governor = "user_space";
 
 		trips {
 			active-config0 {
 					temperature = <115000>;
-					hysteresis = <1000>;
+					hysteresis = <10>;
 					type = "passive";
 			};
 		};
@@ -847,14 +847,14 @@
 
 	pa_therm1 {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
-		thermal-sensors = <&pm8998_adc_tm 0x50>;
+		polling-delay = <100>;
+		thermal-sensors = <>;
 		thermal-governor = "user_space";
 
 		trips {
 			active-config0 {
 					temperature = <115000>;
-					hysteresis = <1000>;
+					hysteresis = <10>;
 					type = "passive";
 			};
 		};
@@ -862,14 +862,14 @@
 
 	quiet_therm {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
-		thermal-sensors = <&pm8998_adc_tm 0x51>;
+		polling-delay = <100>;
+		thermal-sensors = <>;
 		thermal-governor = "user_space";
 
 		trips {
 			active-config0 {
 				temperature = <115000>;
-				hysteresis = <1000>;
+				hysteresis = <10>;
 				type = "passive";
 			};
 		};
