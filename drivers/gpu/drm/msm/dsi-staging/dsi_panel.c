@@ -4109,12 +4109,6 @@ int dsi_panel_drv_init(struct dsi_panel *panel,
 		goto error_exd_gpio_release;
 	}
 
-#if DSI_READ_WRITE_PANEL_DEBUG
-	mipi_proc_entry = proc_create(MIPI_PROC_NAME, 0, NULL, &mipi_reg_proc_fops);
-	if (!mipi_proc_entry)
-		printk(KERN_WARNING "mipi_reg: unable to create proc entry.\n");
-#endif
-
 	goto exit;
 
 error_exd_gpio_release:
