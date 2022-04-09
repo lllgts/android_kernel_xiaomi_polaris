@@ -146,9 +146,9 @@ static uint32_t least_cluster_latency(struct lpm_cluster *cluster,
 			level = &cluster->levels[i];
 			pwr_params = &level->pwr;
 			if (lat_level->reset_level == level->reset_level) {
-				if ((latency > pwr_params->exit_latency)
+				if ((latency > pwr_params->latency_us)
 						|| (!latency))
-					latency = pwr_params->exit_latency;
+					latency = pwr_params->latency_us;
 				break;
 			}
 		}
@@ -165,10 +165,10 @@ static uint32_t least_cluster_latency(struct lpm_cluster *cluster,
 				pwr_params = &level->pwr;
 				if (lat_level->reset_level ==
 						level->reset_level) {
-					if ((latency > pwr_params->exit_latency)
+					if ((latency > pwr_params->latency_us)
 								|| (!latency))
 						latency =
-						pwr_params->exit_latency;
+						pwr_params->latency_us;
 					break;
 				}
 			}
@@ -200,9 +200,9 @@ static uint32_t least_cpu_latency(struct list_head *child,
 				pwr_params = &level->pwr;
 				if (lat_level->reset_level
 						== level->reset_level) {
-					if ((lat > pwr_params->exit_latency)
+					if ((lat > pwr_params->latency_us)
 							|| (!lat))
-						lat = pwr_params->exit_latency;
+						lat = pwr_params->latency_us;
 					break;
 				}
 			}
@@ -396,6 +396,8 @@ static uint64_t lpm_cpuidle_predict(struct cpuidle_device *dev,
 	uint64_t max, avg, stddev;
 	int64_t thresh = LLONG_MAX;
 	struct lpm_history *history = &per_cpu(hist, dev->cpu);
+	uint32_t *min_residency = get_per_cpu_min_residency(dev->cpu);
+	uint32_t *max_residency = get_per_cpu_max_residency(dev->cpu);
 
 	if (!lpm_prediction || !cpu->lpm_prediction)
 		return 0;
@@ -472,15 +474,12 @@ again:
 	 */
 	if (history->htmr_wkup != 1) {
 		for (j = 1; j < cpu->nlevels; j++) {
-			struct lpm_cpu_level *level = &cpu->levels[j];
-			uint32_t min_residency = level->pwr.min_residency;
-			uint32_t max_residency = level->pwr.max_residency;
 			uint32_t failed = 0;
 			uint64_t total = 0;
 
 			for (i = 0; i < MAXSAMPLES; i++) {
 				if ((history->mode[i] == j) &&
-					(history->resi[i] < min_residency)) {
+					(history->resi[i] < min_residency[j])) {
 					failed++;
 					total += history->resi[i];
 				}
@@ -489,9 +488,9 @@ again:
 				*idx_restrict = j;
 				do_div(total, failed);
 				for (i = 0; i < j; i++) {
-					if (total < max_residency) {
+					if (total < max_residency[i]) {
 						*idx_restrict = i+1;
-						total = max_residency;
+						total = max_residency[i];
 						break;
 					}
 				}
@@ -570,8 +569,8 @@ static int cpu_power_select(struct cpuidle_device *dev,
 	uint64_t predicted = 0;
 	uint32_t htime = 0, idx_restrict_time = 0;
 	uint32_t next_wakeup_us = (uint32_t)sleep_us;
-	uint32_t min_residency, max_residency;
-	struct power_params *pwr_params;
+	uint32_t *min_residency = get_per_cpu_min_residency(dev->cpu);
+	uint32_t *max_residency = get_per_cpu_max_residency(dev->cpu);
 
 	if (((sleep_disabled || sleep_disabled_touch) && !cpu_isolated(dev->cpu)) || sleep_us < 0)
 		return best_level;
@@ -584,6 +583,8 @@ static int cpu_power_select(struct cpuidle_device *dev,
 		goto done_select;
 
 	for (i = 0; i < cpu->nlevels; i++) {
+		struct lpm_cpu_level *level = &cpu->levels[i];
+		struct power_params *pwr_params = &level->pwr;
 		bool allow;
 
 		allow = i ? lpm_cpu_mode_allow(dev->cpu, i, true) : true;
@@ -591,10 +592,7 @@ static int cpu_power_select(struct cpuidle_device *dev,
 		if (!allow)
 			continue;
 
-		pwr_params = &cpu->levels[i].pwr;
-		lvl_latency_us = pwr_params->exit_latency;
-		min_residency = pwr_params->min_residency;
-		max_residency = pwr_params->max_residency;
+		lvl_latency_us = pwr_params->latency_us;
 
 		if (latency_us < lvl_latency_us)
 			break;
@@ -614,11 +612,11 @@ static int cpu_power_select(struct cpuidle_device *dev,
 			 * deeper low power modes than clock gating do not
 			 * call prediction.
 			 */
-			if (next_wakeup_us > max_residency) {
+			if (next_wakeup_us > max_residency[i]) {
 				predicted = lpm_cpuidle_predict(dev, cpu,
 					&idx_restrict, &idx_restrict_time);
-				if (predicted && (predicted < min_residency))
-					predicted = min_residency;
+				if (predicted && (predicted < min_residency[i]))
+					predicted = min_residency[i];
 			} else
 				invalidate_predict_history(dev);
 		}
@@ -633,8 +631,8 @@ static int cpu_power_select(struct cpuidle_device *dev,
 		else
 			modified_time_us = 0;
 
-		if (predicted ? (predicted <= max_residency)
-			: (next_wakeup_us <= max_residency))
+		if (predicted ? (predicted <= max_residency[i])
+			: (next_wakeup_us <= max_residency[i]))
 			break;
 	}
 
@@ -645,22 +643,17 @@ static int cpu_power_select(struct cpuidle_device *dev,
 	 * Start timer to avoid staying in shallower mode forever
 	 * incase of misprediciton
 	 */
-
-	pwr_params = &cpu->levels[best_level].pwr;
-	min_residency = pwr_params->min_residency;
-	max_residency = pwr_params->max_residency;
-
 	if ((predicted || (idx_restrict != (cpu->nlevels + 1)))
 			&& ((best_level >= 0)
 			&& (best_level < (cpu->nlevels-1)))) {
 		htime = predicted + cpu->tmr_add;
 		if (htime == cpu->tmr_add)
 			htime = idx_restrict_time;
-		else if (htime > max_residency)
-			htime = max_residency;
+		else if (htime > max_residency[best_level])
+			htime = max_residency[best_level];
 
 		if ((next_wakeup_us > htime) &&
-			((next_wakeup_us - htime) > max_residency))
+			((next_wakeup_us - htime) > max_residency[best_level]))
 			histtimer_start(htime);
 	}
 
@@ -938,11 +931,10 @@ static int cluster_select(struct lpm_cluster *cluster, bool from_idle,
 					&level->num_cpu_votes))
 			continue;
 
-		if (from_idle && latency_us < pwr_params->exit_latency)
+		if (from_idle && latency_us < pwr_params->latency_us)
 			break;
 
-		if (sleep_us < (pwr_params->exit_latency +
-						pwr_params->entry_latency))
+		if (sleep_us < pwr_params->time_overhead_us)
 			break;
 
 		if (suspend_in_progress && from_idle && level->notify_rpm)
@@ -1494,7 +1486,8 @@ static int cluster_cpuidle_register(struct lpm_cluster *cl)
 			snprintf(st->desc, CPUIDLE_DESC_LEN, "%s",
 					cpu_level->name);
 			st->flags = 0;
-			st->exit_latency = cpu_level->pwr.exit_latency;
+			st->exit_latency = cpu_level->pwr.latency_us;
+			st->power_usage = cpu_level->pwr.ss_power;
 			st->target_residency = 0;
 			st->enter = lpm_cpuidle_enter;
 			if (i == lpm_cpu->nlevels - 1)
