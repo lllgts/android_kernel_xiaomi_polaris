@@ -863,7 +863,6 @@
 		polling-delay = <0>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
-		disable-thermal-zone;
 
 		trips {
 			active-config0 {
@@ -927,7 +926,6 @@
 		polling-delay = <0>;
 		thermal-sensors = <>;
 		thermal-governor = "step_wise";
-		disable-thermal-zone;
 
 		trips {
 			batt_charging_lv1: batt-charging_lv1 {
@@ -1029,7 +1027,7 @@
 		polling-delay = <0>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
-		disable-thermal-zone;
+		wake-capable-sensor;
 
 		trips {
 			active-config0 {
@@ -1045,7 +1043,6 @@
 		polling-delay = <0>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
-		disable-thermal-zone;
 
 		trips {
 			active-config0 {
