@@ -27,7 +27,9 @@ static inline void tick_handover_do_timer(void) { }
 static inline void tick_cleanup_dead_cpu(int cpu) { }
 #endif /* !CONFIG_GENERIC_CLOCKEVENTS */
 
+#ifdef CONFIG_SCHED_HMP
 extern u64 jiffy_to_ktime_ns(u64 *now, u64 *jiffy_ktime_ns);
+#endif
 
 #if defined(CONFIG_GENERIC_CLOCKEVENTS) && defined(CONFIG_SUSPEND)
 extern void tick_freeze(void);

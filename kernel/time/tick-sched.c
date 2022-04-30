@@ -52,6 +52,7 @@ struct tick_sched *tick_get_tick_sched(int cpu)
  */
 static ktime_t last_jiffies_update;
 
+#ifdef CONFIG_SCHED_HMP
 u64 jiffy_to_ktime_ns(u64 *now, u64 *jiffy_ktime_ns)
 {
 	u64 cur_jiffies;
@@ -66,6 +67,7 @@ u64 jiffy_to_ktime_ns(u64 *now, u64 *jiffy_ktime_ns)
 
 	return cur_jiffies;
 }
+#endif
 
 /*
  * Must be called with interrupts disabled !
