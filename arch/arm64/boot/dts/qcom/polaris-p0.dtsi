@@ -860,7 +860,7 @@
 
 	xo-therm-adc {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
 
@@ -875,7 +875,7 @@
 
 	xo_therm {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
 		disable-thermal-zone;
@@ -891,7 +891,7 @@
 
 	sdm-therm-adc {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
 		disable-thermal-zone;
@@ -907,7 +907,7 @@
 
 	quiet-therm-adc {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
 		disable-thermal-zone;
@@ -923,7 +923,7 @@
 
 	backup-charge {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "step_wise";
 
@@ -971,7 +971,7 @@
 
 	fps-therm-adc {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
 		disable-thermal-zone;
@@ -992,7 +992,7 @@
 
 	fps-therm-monitor {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
 		disable-thermal-zone;
@@ -1008,7 +1008,7 @@
 
 	pmi_therm-adc {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
 		disable-thermal-zone;
@@ -1024,7 +1024,7 @@
 
 	pa-therm-adc {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
 		wake-capable-sensor;
@@ -1040,7 +1040,7 @@
 
 	usbc-therm-monitor {
 		polling-delay-passive = <0>;
-		polling-delay = <0>;
+		polling-delay = <1000>;
 		thermal-sensors = <>;
 		thermal-governor = "user_space";
 
