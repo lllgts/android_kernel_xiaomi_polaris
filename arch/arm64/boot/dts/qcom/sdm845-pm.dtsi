@@ -41,7 +41,7 @@
 				qcom,entry-latency-us = <3263>;
 				qcom,exit-latency-us = <6562>;
 				qcom,min-residency-us = <9987>;
-				qcom,min-child-idx = <1>;
+				qcom,min-child-idx = <2>;
 				qcom,is-reset;
 				qcom,notify-rpm;
 			};
@@ -65,8 +65,19 @@
 					qcom,min-residency-us = <100>;
 				};
 
-				qcom,pm-cpu-level@1 {  /* C4 */
+				qcom,pm-cpu-level@1 {  /* C3 */
 					reg = <1>;
+					label = "pc";
+					qcom,psci-cpu-mode = <0x3>;
+					qcom,entry-latency-us = <350>;
+					qcom,exit-latency-us = <461>;
+					qcom,min-residency-us = <1890>;
+					qcom,is-reset;
+					qcom,use-broadcast-timer;
+				};
+
+				qcom,pm-cpu-level@2 {  /* C4 */
+					reg = <2>;
 					label = "rail-pc";
 					qcom,psci-cpu-mode = <0x4>;
 					qcom,entry-latency-us = <360>;
@@ -96,8 +107,19 @@
 					qcom,min-residency-us = <83>;
 				};
 
-				qcom,pm-cpu-level@1 {  /* C4 */
+				qcom,pm-cpu-level@1 {  /* C3 */
 					reg = <1>;
+					label = "pc";
+					qcom,psci-cpu-mode = <0x3>;
+					qcom,entry-latency-us = <264>;
+					qcom,exit-latency-us = <621>;
+					qcom,min-residency-us = <952>;
+					qcom,is-reset;
+					qcom,use-broadcast-timer;
+				};
+
+				qcom,pm-cpu-level@2 {  /* C4 */
+					reg = <2>;
 					label = "rail-pc";
 					qcom,psci-cpu-mode = <0x4>;
 					qcom,entry-latency-us = <702>;
