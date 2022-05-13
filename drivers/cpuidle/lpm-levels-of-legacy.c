@@ -505,6 +505,11 @@ static int parse_power_params(struct device_node *node,
 	if (ret)
 		goto fail;
 
+	key = "qcom,energy-overhead";
+	ret = of_property_read_u32(node, key, &pwr->energy_overhead);
+	if (ret)
+		goto fail;
+
 	key = "qcom,time-overhead";
 	ret = of_property_read_u32(node, key, &pwr->time_overhead_us);
 	if (ret)
