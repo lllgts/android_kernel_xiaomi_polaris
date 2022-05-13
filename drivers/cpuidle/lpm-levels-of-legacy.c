@@ -505,6 +505,11 @@ static int parse_power_params(struct device_node *node,
 	if (ret)
 		goto fail;
 
+	key = "qcom,time-overhead";
+	ret = of_property_read_u32(node, key, &pwr->time_overhead_us);
+	if (ret)
+		goto fail;
+
 fail:
 	if (ret)
 		pr_err("%s(): %s Error reading %s\n", __func__, node->name,

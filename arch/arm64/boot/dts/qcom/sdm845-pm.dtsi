@@ -30,6 +30,7 @@
 				qcom,psci-mode = <0x1>;
 				qcom,latency-us = <51>;
 				qcom,ss-power = <452>;
+				qcom,time-overhead = <99>;
 			};
 
 			qcom,pm-cluster-level@1 { /* LLCC off, AOSS sleep */
@@ -38,6 +39,7 @@
 				qcom,psci-mode = <0xC24>;
 				qcom,latency-us = <6562>;
 				qcom,ss-power = <108>;
+				qcom,time-overhead = <5000>;
 				qcom,min-child-idx = <2>;
 				qcom,is-reset;
 				qcom,notify-rpm;
@@ -57,6 +59,7 @@
 					qcom,psci-cpu-mode = <0x1>;
 					qcom,latency-us = <43>;
 					qcom,ss-power = <150>;
+					qcom,time-overhead = <100>;
 				};
 
 				qcom,pm-cpu-level@1 {  /* C3 */
@@ -65,6 +68,7 @@
 					qcom,psci-cpu-mode = <0x3>;
 					qcom,latency-us = <461>;
 					qcom,ss-power = <100>;
+					qcom,time-overhead = <500>;
 					qcom,is-reset;
 					qcom,use-broadcast-timer;
 				};
@@ -75,6 +79,7 @@
 					qcom,psci-cpu-mode = <0x4>;
 					qcom,latency-us = <531>;
 					qcom,ss-power = <73>;
+					qcom,time-overhead = <600>;
 					qcom,is-reset;
 					qcom,use-broadcast-timer;
 				};
@@ -93,6 +98,7 @@
 					qcom,psci-cpu-mode = <0x1>;
 					qcom,latency-us = <43>;
 					qcom,ss-power = <454>;
+					qcom,time-overhead = <83>;
 				};
 
 				qcom,pm-cpu-level@1 {  /* C3 */
@@ -101,6 +107,7 @@
 					qcom,psci-cpu-mode = <0x3>;
 					qcom,latency-us = <621>;
 					qcom,ss-power = <436>;
+					qcom,time-overhead = <885>;
 					qcom,is-reset;
 					qcom,use-broadcast-timer;
 				};
@@ -111,6 +118,7 @@
 					qcom,psci-cpu-mode = <0x4>;
 					qcom,latency-us = <1061>;
 					qcom,ss-power = <400>;
+					qcom,time-overhead = <1000>;
 					qcom,is-reset;
 					qcom,use-broadcast-timer;
 				};
