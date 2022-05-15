@@ -1388,7 +1388,6 @@ static void hrtimer_rt_run_pending(void)
 			raw_write_seqcount_barrier(&cpu_base->seq);
 
 			__remove_hrtimer(timer, base, HRTIMER_STATE_INACTIVE, 0);
-			timer_stats_account_hrtimer(timer);
 			fn = timer->function;
 
 			raw_spin_unlock_irq(&cpu_base->lock);
