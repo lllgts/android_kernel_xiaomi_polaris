@@ -40,8 +40,6 @@
 
 #define LOOPBACK_SESSION_MAX_NUM_STREAMS 2
 
-static DEFINE_MUTEX(transcode_loopback_session_lock);
-
 struct trans_loopback_pdata {
 	struct snd_compr_stream *cstream[MSM_FRONTEND_DAI_MAX];
 };
