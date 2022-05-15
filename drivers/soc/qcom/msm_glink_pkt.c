@@ -182,7 +182,6 @@ struct notify_state_work {
 
 static DEFINE_MUTEX(glink_pkt_dev_lock_lha1);
 static LIST_HEAD(glink_pkt_dev_list);
-static DEFINE_MUTEX(glink_pkt_driver_lock_lha1);
 static LIST_HEAD(glink_pkt_driver_list);
 
 struct class *glink_pkt_classp;
