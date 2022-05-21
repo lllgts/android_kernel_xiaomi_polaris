@@ -41,7 +41,7 @@
 				qcom,latency-us = <6562>;
 				qcom,ss-power = <108>;
 				qcom,energy-overhead = <4000000>;
-				qcom,time-overhead = <5000>;
+				qcom,time-overhead = <7376>;
 				qcom,min-child-idx = <2>;
 				qcom,is-reset;
 				qcom,notify-rpm;
@@ -70,9 +70,9 @@
 					label = "pc";
 					qcom,psci-cpu-mode = <0x3>;
 					qcom,latency-us = <461>;
-					qcom,ss-power = <100>;
-					qcom,energy-overhead = <400000>;
-					qcom,time-overhead = <500>;
+					qcom,ss-power = <436>;
+					qcom,energy-overhead = <418225>;
+					qcom,time-overhead = <885>;
 					qcom,is-reset;
 					qcom,use-broadcast-timer;
 				};
@@ -82,9 +82,9 @@
 					label = "rail-pc";
 					qcom,psci-cpu-mode = <0x4>;
 					qcom,latency-us = <531>;
-					qcom,ss-power = <73>;
+					qcom,ss-power = <400>;
 					qcom,energy-overhead = <500000>;
-					qcom,time-overhead = <600>;
+					qcom,time-overhead = <1000>;
 					qcom,is-reset;
 					qcom,use-broadcast-timer;
 				};
