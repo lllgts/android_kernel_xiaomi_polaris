@@ -11203,16 +11203,13 @@ static inline bool nohz_kick_needed(struct rq *rq, bool only_update)
 	if (time_before(now, nohz.next_balance))
 		return false;
 
-	/*
-	 * If energy aware is enabled, do idle load balance if runqueue has
-	 * at least 2 tasks and cpu is overutilized
-	 */
 	if (rq->nr_running >= 2 &&
 	    (!energy_aware() || cpu_overutilized(cpu)))
 		return true;
 
+	/* Do idle load balance if there have misfit task */
 	if (energy_aware())
-		return false;
+		return rq->misfit_task;
 
 	rcu_read_lock();
 	sds = rcu_dereference(per_cpu(sd_llc_shared, cpu));
