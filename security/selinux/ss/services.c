@@ -1986,8 +1986,6 @@ static int convert_context(struct context *oldc, struct context *newc, void *p)
 #ifdef CONFIG_AUDIT
 	u32 len;
 #endif
-
-	u32 len;
 	int rc;
 
 	args = p;
