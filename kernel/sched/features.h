@@ -3,7 +3,7 @@
  * them to run sooner, but does not allow tons of sleepers to
  * rip the spread apart.
  */
-SCHED_FEAT(GENTLE_FAIR_SLEEPERS, false)
+SCHED_FEAT(GENTLE_FAIR_SLEEPERS, true)
 
 /*
  * Place new tasks ahead so that they do not starve already running
@@ -16,7 +16,7 @@ SCHED_FEAT(START_DEBIT, true)
  * wakeup-preemption), since its likely going to consume data we
  * touched, increases cache locality.
  */
-SCHED_FEAT(NEXT_BUDDY, true)
+SCHED_FEAT(NEXT_BUDDY, false)
 
 /*
  * Prefer to schedule the task that ran last (when we did
@@ -29,7 +29,7 @@ SCHED_FEAT(LAST_BUDDY, true)
  * skip buddy i.e task called yield() is always skipped and the
  * next entity is selected to run irrespective of the vruntime
  */
-SCHED_FEAT(STRICT_SKIP_BUDDY, false)
+SCHED_FEAT(STRICT_SKIP_BUDDY, true)
 
 /*
  * Consider buddies to be cache hot, decreases the likelyness of a
