@@ -493,7 +493,7 @@ asmlinkage __visible void __init start_kernel(void)
 	/*
 	 * Set up the the initial canary ASAP:
 	 */
-	boot_init_stack_canary();
+	add_latent_entropy();
 
 	cgroup_init_early();
 
