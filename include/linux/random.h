@@ -45,43 +45,7 @@ static inline unsigned long get_random_long(void)
 #endif
 }
 
-int __init random_init(const char *command_line);
-bool rng_is_initialized(void);
-int wait_for_random_bytes(void);
-int register_random_ready_notifier(struct notifier_block *nb);
-int unregister_random_ready_notifier(struct notifier_block *nb);
-
-/* Calls wait_for_random_bytes() and then calls get_random_bytes(buf, nbytes).
- * Returns the result of the call to wait_for_random_bytes. */
-static inline int get_random_bytes_wait(void *buf, size_t nbytes)
-{
-	int ret = wait_for_random_bytes();
-	get_random_bytes(buf, nbytes);
-	return ret;
-}
-
-#define declare_get_random_var_wait(name, ret_type) \
-	static inline int get_random_ ## name ## _wait(ret_type *out) { \
-		int ret = wait_for_random_bytes(); \
-		if (unlikely(ret)) \
-			return ret; \
-		*out = get_random_ ## name(); \
-		return 0; \
-	}
-declare_get_random_var_wait(u32, u32)
-declare_get_random_var_wait(u64, u32)
-declare_get_random_var_wait(int, unsigned int)
-declare_get_random_var_wait(long, unsigned long)
-#undef declare_get_random_var
-
-u32 prandom_u32(void);
-void prandom_bytes(void *buf, size_t nbytes);
-void prandom_seed(u32 seed);
-void prandom_reseed_late(void);
-
-struct rnd_state {
-	__u32 s1, s2, s3, s4;
-};
+unsigned long randomize_page(unsigned long start, unsigned long range);
 
 u32 prandom_u32_state(struct rnd_state *state);
 void prandom_bytes_state(struct rnd_state *state, void *buf, size_t nbytes);
