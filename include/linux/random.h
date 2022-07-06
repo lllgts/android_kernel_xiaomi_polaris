@@ -28,32 +28,13 @@ static inline void add_latent_entropy(void)
 static inline void add_latent_entropy(void) { }
 #endif
 
-unsigned int get_random_int(void);
-unsigned long get_random_long(void);
-unsigned long randomize_page(unsigned long start, unsigned long range);
-
-u32 prandom_u32_state(struct rnd_state *state);
-void prandom_bytes_state(struct rnd_state *state, void *buf, size_t nbytes);
-void prandom_seed_full_state(struct rnd_state __percpu *pcpu_state);
-
-#define prandom_init_once(pcpu_state)			\
-	DO_ONCE(prandom_seed_full_state, (pcpu_state))
-
-/**
- * prandom_u32_max - returns a pseudo-random number in interval [0, ep_ro)
- * @ep_ro: right open interval endpoint
- *
- * Returns a pseudo-random number that is in interval [0, ep_ro). Note
- * that the result depends on PRNG being well distributed in [0, ~0U]
- * u32 space. Here we use maximally equidistributed combined Tausworthe
- * generator, that is, prandom_u32(). This is useful when requesting a
- * random index of an array containing ep_ro elements, for example.
- *
- * Returns: pseudo-random number in interval [0, ep_ro)
- */
-static inline u32 prandom_u32_max(u32 ep_ro)
+void get_random_bytes(void *buf, size_t len);
+size_t __must_check get_random_bytes_arch(void *buf, size_t len);
+u32 get_random_u32(void);
+u64 get_random_u64(void);
+static inline unsigned int get_random_int(void)
 {
-	return (u32)(((u64) prandom_u32() * ep_ro) >> 32);
+	return get_random_u32();
 }
 static inline unsigned long get_random_long(void)
 {
@@ -89,28 +70,35 @@ int wait_for_random_bytes(void);
 int register_random_ready_notifier(struct notifier_block *nb);
 int unregister_random_ready_notifier(struct notifier_block *nb);
 
+/* Calls wait_for_random_bytes() and then calls get_random_bytes(buf, nbytes).
+ * Returns the result of the call to wait_for_random_bytes. */
+static inline int get_random_bytes_wait(void *buf, size_t nbytes)
+{
+	int ret = wait_for_random_bytes();
+	get_random_bytes(buf, nbytes);
+	return ret;
+}
+
+#define declare_get_random_var_wait(name, ret_type) \
+	static inline int get_random_ ## name ## _wait(ret_type *out) { \
+		int ret = wait_for_random_bytes(); \
+		if (unlikely(ret)) \
+			return ret; \
+		*out = get_random_ ## name(); \
+		return 0; \
+	}
+declare_get_random_var_wait(u32, u32)
+declare_get_random_var_wait(u64, u32)
+declare_get_random_var_wait(int, unsigned int)
+declare_get_random_var_wait(long, unsigned long)
+#undef declare_get_random_var
+
 /*
- * Handle minimum values for seeds
+ * This is designed to be standalone for just prandom
+ * users, but for now we include it from <linux/random.h>
+ * for legacy reasons.
  */
-static inline u32 __seed(u32 x, u32 m)
-{
-	return (x < m) ? x + m : x;
-}
-
-/**
- * prandom_seed_state - set seed for prandom_u32_state().
- * @state: pointer to state structure to receive the seed.
- * @seed: arbitrary 64-bit value to use as a seed.
- */
-static inline void prandom_seed_state(struct rnd_state *state, u64 seed)
-{
-	u32 i = (seed >> 32) ^ (seed << 10) ^ seed;
-
-	state->s1 = __seed(i,   2U);
-	state->s2 = __seed(i,   8U);
-	state->s3 = __seed(i,  16U);
-	state->s4 = __seed(i, 128U);
-}
+#include <linux/prandom.h>
 
 #ifdef CONFIG_ARCH_RANDOM
 # include <asm/archrandom.h>
