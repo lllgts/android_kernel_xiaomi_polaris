@@ -926,25 +926,26 @@
 		polling-delay = <0>;
 		thermal-sensors = <>;
 		thermal-governor = "step_wise";
-
+		disable-thermal-zone;
+		
 		trips {
 			batt_charging_lv1: batt-charging_lv1 {
-				temperature = <65000>;
+				temperature = <80000>;
 				hysteresis = <5>;
 				type = "passive";
 			};
 			batt_charging_lv2: batt-charging_lv2 {
-				temperature = <68000>;
+				temperature = <82000>;
 				hysteresis = <5>;
 				type = "passive";
 			};
 			batt_charging_lv3: batt-charging_lv3 {
-				temperature = <70000>;
+				temperature = <85000>;
 				hysteresis = <5>;
 				type = "passive";
 			};
 			batt_charging_lv4: batt-charging_lv4 {
-				temperature = <75000>;
+				temperature = <90000>;
 				hysteresis = <5>;
 				type = "passive";
 			};
