@@ -7,7 +7,7 @@ args="-j$(nproc --all) \
 	CROSS_COMPILE=/home/lllgts/clang13/bin/aarch64-linux-gnu- \
 	CC=/home/lllgts/clang/clang-r450784e/bin/clang \
 	CROSS_COMPILE_ARM32=/home/lllgts/clang13/bin/arm-linux-gnueabi- "
-	make ${args} polaris_defconfig
+	make ${args} sakura_defconfig
 	make ${args}
 
 echo "桜 已经编译完成啦!"
