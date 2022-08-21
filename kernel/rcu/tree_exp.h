@@ -374,7 +374,8 @@ static void sync_rcu_exp_select_cpus(struct rcu_state *rsp,
 		mask_ofl_test = 0;
 		for_each_leaf_node_possible_cpu(rnp, cpu) {
 			struct rcu_data *rdp = per_cpu_ptr(rsp->rda, cpu);
-
+			struct rcu_dynticks *rdtp = &per_cpu(rcu_dynticks, cpu);
+			
 			rdp->exp_dynticks_snap =
 				atomic_add_return(0, &rdtp->dynticks);
 			if (raw_smp_processor_id() == cpu ||
