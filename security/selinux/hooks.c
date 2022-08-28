@@ -247,6 +247,7 @@ static int inode_alloc_security(struct inode *inode)
 	isec->sid = SECINITSID_UNLABELED;
 	isec->sclass = SECCLASS_FILE;
 	isec->task_sid = sid;
+	isec->initialized = LABEL_INVALID;
 	inode->i_security = isec;
 
 	return 0;
@@ -257,7 +258,7 @@ static int inode_doinit_with_dentry(struct inode *inode, struct dentry *opt_dent
 /*
  * Try reloading inode security labels that have been marked as invalid.  The
  * @may_sleep parameter indicates when sleeping and thus reloading labels is
- * allowed; when set to false, returns ERR_PTR(-ECHILD) when the label is
+ * allowed; when set to false, returns -ECHILD when the label is
  * invalid.  The @opt_dentry parameter should be set to a dentry of the inode;
  * when no dentry is available, set it to NULL instead.
  */
@@ -1485,7 +1486,12 @@ static int inode_doinit_with_dentry(struct inode *inode, struct dentry *opt_dent
 		}
 
 		len = INITCONTEXTLEN;
-		context = context_onstack;
+		context = kmalloc(len+1, GFP_NOFS);
+		if (!context) {
+			rc = -ENOMEM;
+			dput(dentry);
+			goto out;
+		}
 		context[len] = '\0';
 		rc = __vfs_getxattr(dentry, inode, XATTR_NAME_SELINUX, context, len);
 		if (rc == -ERANGE) {
@@ -1511,8 +1517,7 @@ static int inode_doinit_with_dentry(struct inode *inode, struct dentry *opt_dent
 				printk(KERN_WARNING "SELinux: %s:  getxattr returned "
 				       "%d for dev=%s ino=%ld\n", __func__,
 				       -rc, inode->i_sb->s_id, inode->i_ino);
-				if (context != context_onstack)
-				    kfree(context);
+				kfree(context);
 				goto out;
 			}
 			/* Map ENODATA to the default file SID */
@@ -1544,8 +1549,7 @@ static int inode_doinit_with_dentry(struct inode *inode, struct dentry *opt_dent
 				break;
 			}
 		}
-		if (context != context_onstack)
-			kfree(context);
+		kfree(context);
 		break;
 	case SECURITY_FS_USE_TASK:
 		sid = task_sid;
@@ -1555,8 +1559,7 @@ static int inode_doinit_with_dentry(struct inode *inode, struct dentry *opt_dent
 		sid = sbsec->sid;
 
 		/* Try to obtain a transition SID. */
-		rc = security_transition_sid(&selinux_state, task_sid, sid,
-					     sclass, NULL, &sid);
+		rc = security_transition_sid(&selinux_state, task_sid, sid, sclass, NULL, &sid);
 		if (rc)
 			goto out;
 		break;
