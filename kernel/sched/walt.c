@@ -2106,33 +2106,6 @@ void mark_task_starting(struct task_struct *p)
 	update_task_cpu_cycles(p, cpu_of(rq), wallclock);
 }
 
-#define pct_to_min_scaled(tunable) \
-		div64_u64(((u64)sched_ravg_window * tunable *	\
-			  cluster_max_freq(sched_cluster[0]) *	\
-			  sched_cluster[0]->efficiency),	\
-			  ((u64)max_possible_freq *		\
-			  max_possible_efficiency * 100))
-
-static inline void walt_update_group_thresholds(void)
-{
-	sched_group_upmigrate =
-			pct_to_min_scaled(sysctl_sched_group_upmigrate_pct);
-	sched_group_downmigrate =
-			pct_to_min_scaled(sysctl_sched_group_downmigrate_pct);
-}
-			  
-static void walt_cpus_capacity_changed(const cpumask_t *cpus)
-{
-	unsigned long flags;
-
-	acquire_rq_locks_irqsave(cpu_possible_mask, &flags);
-
-	if (cpumask_intersects(cpus, &sched_cluster[0]->cpus))
-		walt_update_group_thresholds();
-
-	release_rq_locks_irqrestore(cpu_possible_mask, &flags);
-}
-
 static cpumask_t all_cluster_cpus = CPU_MASK_NONE;
 DECLARE_BITMAP(all_cluster_ids, NR_CPUS);
 struct sched_cluster *sched_cluster[NR_CPUS];
@@ -2171,6 +2144,7 @@ static struct sched_cluster *alloc_new_cluster(const struct cpumask *cpus)
 	cluster->capacity		=	1024;
 	cluster->max_possible_capacity	=	1024;
 	cluster->efficiency		=	1;
+	cluster->load_scale_factor	=	1024;
 	cluster->cur_freq		=	1;
 	cluster->max_freq		=	1;
 	cluster->max_mitigated_freq	=	UINT_MAX;
@@ -2355,6 +2329,7 @@ static void update_all_clusters_stats(void)
 		cluster->capacity = compute_capacity(cluster);
 		mpc = cluster->max_possible_capacity =
 			compute_max_possible_capacity(cluster);
+		cluster->load_scale_factor = compute_load_scale_factor(cluster);
 
 		cluster->exec_scale_factor =
 			DIV_ROUND_UP(cluster->efficiency * 1024,
@@ -2409,6 +2384,7 @@ struct sched_cluster init_cluster = {
 	.capacity		=	1024,
 	.max_possible_capacity	=	1024,
 	.efficiency		=	1,
+	.load_scale_factor	=	1024,
 	.cur_freq		=	1,
 	.max_freq		=	1,
 	.max_mitigated_freq	=	UINT_MAX,
@@ -2492,7 +2468,7 @@ static int cpufreq_notifier_policy(struct notifier_block *nb,
 	}
 
 	if (update_capacity)
-		walt_cpus_capacity_changed(policy->related_cpus);
+		update_cpu_cluster_capacity(policy->related_cpus);
 
 	return 0;
 }
@@ -2598,8 +2574,10 @@ static int
 group_will_fit(struct sched_cluster *cluster, struct related_thread_group *grp,
 						u64 demand, bool group_boost)
 {
+	int cpu = cluster_first_cpu(cluster);
 	int prev_capacity = 0;
 	unsigned int threshold = sched_group_upmigrate;
+	u64 load;
 
 	if (cluster->capacity == max_capacity)
 		return 1;
@@ -2615,6 +2593,10 @@ group_will_fit(struct sched_cluster *cluster, struct related_thread_group *grp,
 
 	if (cluster->capacity < prev_capacity)
 		threshold = sched_group_downmigrate;
+
+	load = scale_load_to_cpu(demand, cpu);
+	if (load < threshold)
+		return 1;
 
 	return 0;
 }
@@ -2981,6 +2963,29 @@ int sync_cgroup_colocation(struct task_struct *p, bool insert)
 }
 #endif
 
+void update_cpu_cluster_capacity(const cpumask_t *cpus)
+{
+	int i;
+	struct sched_cluster *cluster;
+	struct cpumask cpumask;
+	unsigned long flags;
+
+	cpumask_copy(&cpumask, cpus);
+	acquire_rq_locks_irqsave(cpu_possible_mask, &flags);
+
+	for_each_cpu(i, &cpumask) {
+		cluster = cpu_rq(i)->cluster;
+		cpumask_andnot(&cpumask, &cpumask, &cluster->cpus);
+
+		cluster->capacity = compute_capacity(cluster);
+		cluster->load_scale_factor = compute_load_scale_factor(cluster);
+	}
+
+	__update_min_max_capacity();
+
+	release_rq_locks_irqrestore(cpu_possible_mask, &flags);
+}
+
 static unsigned long max_cap[NR_CPUS];
 static unsigned long thermal_cap_cpu[NR_CPUS];
 
@@ -3040,7 +3045,7 @@ void sched_update_cpu_freq_min_max(const cpumask_t *cpus, u32 fmin, u32 fmax)
 	spin_unlock_irqrestore(&cpu_freq_min_max_lock, flags);
 
 	if (update_capacity)
-		walt_cpus_capacity_changed(cpus);
+		update_cpu_cluster_capacity(cpus);
 }
 
 void note_task_waking(struct task_struct *p, u64 wallclock)
