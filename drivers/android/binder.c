@@ -64,6 +64,9 @@
 #include <linux/ratelimit.h>
 #include <linux/syscalls.h>
 #include <linux/task_work.h>
+#ifdef CONFIG_HW_CGROUP_WORKINGSET
+#include <linux/workingset_cgroup.h>
+#endif
 
 #include <uapi/linux/eventpoll.h>
 #include <uapi/linux/android/binder.h>
@@ -544,6 +547,35 @@ static void binder_wakeup_poll_threads_ilocked(struct binder_proc *proc,
 		}
 	}
 }
+
+#ifdef CONFIG_HW_CGROUP_WORKINGSET
+static bool workingset_preread_ilocked(
+	struct binder_proc *proc,
+	struct binder_thread *thread)
+{
+	if (binder_has_work_ilocked(thread, true))
+		return true;
+	if (list_empty(&proc->waiting_threads))
+		return false;
+
+	binder_inner_proc_unlock(proc);
+	__set_current_state(TASK_RUNNING);
+	workingset_preread_by_self();
+	binder_inner_proc_lock(proc);
+
+	return false;
+}
+
+static inline bool workingset_try_preread_ilocked(
+	struct binder_proc *proc,
+	struct binder_thread *thread,
+	struct task_struct *tsk)
+{
+	if (likely(!tsk || !(tsk->ext_flags & PF_EXT_WSCG_PREREAD)))
+		return false;
+	return workingset_preread_ilocked(proc, thread);
+}
+#endif
 
 /**
  * binder_select_thread_ilocked() - selects a thread for doing proc work.
@@ -4232,6 +4264,11 @@ static int binder_wait_for_work(struct binder_thread *thread,
 	freezer_do_not_count();
 	binder_inner_proc_lock(proc);
 	for (;;) {
+#ifdef CONFIG_HW_CGROUP_WORKINGSET
+		if (do_proc_work && workingset_try_preread_ilocked(
+			proc, thread, proc->tsk))
+			break;
+#endif
 		prepare_to_wait(&thread->wait, &wait, TASK_INTERRUPTIBLE);
 		if (binder_has_work_ilocked(thread, do_proc_work))
 			break;
