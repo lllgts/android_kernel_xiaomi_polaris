@@ -38,7 +38,6 @@ static inline void boost_kick(int cpu)
 
 static void boost_kick_cpus(void)
 {
-	int i;
 	struct cpumask kick_mask;
 
 	if (boost_policy != SCHED_BOOST_ON_BIG)
@@ -46,10 +45,6 @@ static void boost_kick_cpus(void)
 
 	cpumask_andnot(&kick_mask, cpu_online_mask, cpu_isolated_mask);
 
-	for_each_cpu(i, &kick_mask) {
-		if (cpu_capacity(i) != max_capacity)
-			boost_kick(i);
-	}
 }
 
 int got_boost_kick(void)
