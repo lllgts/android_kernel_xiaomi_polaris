@@ -2820,6 +2820,18 @@ static int dsi_panel_parse_bl_config(struct dsi_panel *panel,
 	panel->bl_config.bl_scale = MAX_BL_SCALE_LEVEL;
 	panel->bl_config.bl_scale_ad = MAX_AD_BL_SCALE_LEVEL;
 
+	panel->bl_config.dcs_type_ss = of_property_read_bool(of_node,
+						"qcom,mdss-dsi-bl-dcs-type-ss");
+
+	rc = of_property_read_u32(of_node, "qcom,bl-update-delay", &val);
+	if (rc) {
+		pr_debug("[%s] bl-update-delay unspecified, defaulting to zero\n",
+			 panel->name);
+		panel->bl_config.bl_update_delay = 0;
+	} else {
+		panel->bl_config.bl_update_delay = val;
+	}
+
 	rc = of_property_read_u32(of_node, "qcom,mdss-dsi-bl-min-level", &val);
 	if (rc) {
 		pr_debug("[%s] bl-min-level unspecified, defaulting to zero\n",
