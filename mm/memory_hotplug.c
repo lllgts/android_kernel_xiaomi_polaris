@@ -35,6 +35,9 @@
 #include <linux/bootmem.h>
 #include <linux/compaction.h>
 #include <linux/rmap.h>
+#ifdef CONFIG_HYPERHOLD
+#include <linux/memcg_policy.h>
+#endif
 
 #include <asm/tlbflush.h>
 
@@ -1158,6 +1161,9 @@ int __ref online_pages(unsigned long pfn, unsigned long nr_pages, int online_typ
 	if (onlined_pages) {
 		kswapd_run(nid);
 		kcompactd_run(nid);
+#ifdef CONFIG_HYPERHOLD_ZSWAPD
+	        zswapd_run(nid);
+#endif
 	}
 
 	vm_total_pages = nr_free_pagecache_pages();
@@ -2029,6 +2035,9 @@ repeat:
 	if (arg.status_change_nid >= 0) {
 		kswapd_stop(node);
 		kcompactd_stop(node);
+#ifdef CONFIG_HYPERHOLD_ZSWAPD
+		zswapd_stop(node);
+#endif
 	}
 
 	vm_total_pages = nr_free_pagecache_pages();

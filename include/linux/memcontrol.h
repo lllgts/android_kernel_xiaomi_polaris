@@ -29,6 +29,9 @@
 #include <linux/mmzone.h>
 #include <linux/writeback.h>
 #include <linux/page-flags.h>
+#ifdef CONFIG_HYPERHOLD
+#include <linux/memcg_policy.h>
+#endif
 
 struct mem_cgroup;
 struct page;
@@ -64,6 +67,13 @@ struct mem_cgroup_reclaim_cookie {
 	int priority;
 	unsigned int generation;
 };
+
+#ifdef CONFIG_HYPERHOLD
+static inline bool is_prot_page(struct page *page)
+{
+	return false;
+}
+#endif
 
 enum mem_cgroup_events_index {
 	MEM_CGROUP_EVENTS_PGPGIN,	/* # of pages paged in */
@@ -249,6 +259,14 @@ struct mem_cgroup {
 	bool			tcpmem_active;
 	int			tcpmem_pressure;
 
+#ifdef CONFIG_HYPERHOLD
+	struct memcg_reclaim memcg_reclaimed;
+	struct list_head score_node;
+	struct list_head son_head;
+	struct list_head list_node;
+#define MEM_CGROUP_NAME_MAX_LEN 100
+	char name[MEM_CGROUP_NAME_MAX_LEN];
+#endif
 #ifndef CONFIG_SLOB
         /* Index in the kmem_cache->memcg_params.memcg_caches array */
 	int kmemcg_id;
@@ -276,6 +294,10 @@ struct mem_cgroup {
 };
 
 extern struct mem_cgroup *root_mem_cgroup;
+#ifdef CONFIG_HYPERHOLD
+struct mem_cgroup *get_next_memcg(struct mem_cgroup *prev);
+void get_next_memcg_break(struct mem_cgroup *prev);
+#endif
 
 static inline bool mem_cgroup_disabled(void)
 {
@@ -569,6 +591,11 @@ static inline void mem_cgroup_count_vm_event(struct mm_struct *mm,
 					     enum vm_event_item idx)
 {
 	struct mem_cgroup *memcg;
+
+#ifdef CONFIG_HYPERHOLD
+	if (!memcg)
+		return;
+#endif
 
 	if (mem_cgroup_disabled())
 		return;

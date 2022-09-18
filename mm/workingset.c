@@ -233,6 +233,12 @@ void *workingset_eviction(struct address_space *mapping, struct page *page)
 	VM_BUG_ON_PAGE(!PageLocked(page), page);
 
 	lruvec = mem_cgroup_lruvec(pgdat, memcg);
+
+#ifdef CONFIG_HYPERHOLD_FILE_LRU
+	if (!is_prot_page(page))
+		lruvec = node_lruvec(pgdat);
+
+#endif
 	eviction = atomic_long_inc_return(&lruvec->inactive_age);
 	return pack_shadow(memcgid, pgdat, eviction, PageWorkingset(page));
 }
@@ -280,6 +286,10 @@ void workingset_refault(struct page *page, void *shadow)
 	if (!mem_cgroup_disabled() && !memcg)
 		goto out;
 	lruvec = mem_cgroup_lruvec(pgdat, memcg);
+#ifdef CONFIG_HYPERHOLD_FILE_LRU
+	if (!is_prot_page(page))
+		lruvec = node_lruvec(pgdat);
+#endif
 	refault = atomic_long_read(&lruvec->inactive_age);
 	active_file = lruvec_lru_size(lruvec, LRU_ACTIVE_FILE, MAX_NR_ZONES);
 
@@ -345,6 +355,11 @@ void workingset_activation(struct page *page)
 	if (!mem_cgroup_disabled() && !memcg)
 		goto out;
 	lruvec = mem_cgroup_lruvec(page_pgdat(page), memcg);
+#ifdef CONFIG_HYPERHOLD_FILE_LRU
+	if (!is_prot_page(page))
+		lruvec = node_lruvec(page_pgdat(page));
+
+#endif
 	atomic_long_inc(&lruvec->inactive_age);
 out:
 	rcu_read_unlock();
@@ -376,6 +391,10 @@ static unsigned long count_shadow_nodes(struct shrinker *shrinker,
 	shadow_nodes = list_lru_shrink_count(&workingset_shadow_nodes, sc);
 	local_irq_enable();
 
+#ifdef CONFIG_HYPERHOLD_FILE_LRU
+	page = node_page_state(NODE_DATA(sc->nid), NR_ACTIVE_FILE) +
+		node_page_state(NODE_DATA(sc->nid), NR_INACTIVE_FILE);
+#else
 	if (sc->memcg) {
 		pages = mem_cgroup_node_nr_lru_pages(sc->memcg, sc->nid,
 						     LRU_ALL_FILE);
@@ -383,6 +402,7 @@ static unsigned long count_shadow_nodes(struct shrinker *shrinker,
 		pages = node_page_state(NODE_DATA(sc->nid), NR_ACTIVE_FILE) +
 			node_page_state(NODE_DATA(sc->nid), NR_INACTIVE_FILE);
 	}
+#endif
 
 	/*
 	 * Active cache pages are limited to 50% of memory, and shadow

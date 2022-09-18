@@ -247,6 +247,17 @@ struct swap_info_struct {
 	unsigned int max_writes;
 };
 
+#ifdef CONFIG_HYPERHOLD_FILE_LRU
+static inline struct lruvec *hp_lruvec(struct lruvec *lruvec,
+				       struct page *page,
+				       struct pglist_data *pgdat)
+{
+	if (!is_prot_page(page))
+		return node_lruvec(pgdat);
+	return lruvec;
+}
+#endif
+
 /* linux/mm/workingset.c */
 void *workingset_eviction(struct address_space *mapping, struct page *page);
 void workingset_refault(struct page *page, void *shadow);
@@ -396,6 +407,9 @@ extern struct page *swapin_readahead(swp_entry_t, gfp_t,
 extern atomic_long_t nr_swap_pages;
 extern long total_swap_pages;
 extern bool is_swap_fast(swp_entry_t entry);
+#ifdef CONFIG_HYPERHOLD_ZSWAPD
+extern bool free_swap_is_low(void);
+#endif
 
 /* Swap 50% full? Release swapcache more aggressively.. */
 static inline bool vm_swap_full(struct swap_info_struct *si)
