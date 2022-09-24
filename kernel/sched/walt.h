@@ -18,7 +18,7 @@
 
 #include <linux/sched/sysctl.h>
 
-#define MAX_NR_CLUSTERS			3
+#define MAX_NR_CLUSTERS			2
 
 #define WINDOW_STATS_RECENT		0
 #define WINDOW_STATS_MAX		1
