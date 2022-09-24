@@ -87,9 +87,6 @@ void sched_get_nr_running_avg(int *avg, int *iowait_avg, int *big_avg,
 		tmp_big_avg += per_cpu(nr_big_prod_sum, cpu);
 		tmp_big_avg += nr_eligible_big_tasks(cpu) * diff;
 
-		tmp_iowait += per_cpu(iowait_prod_sum, cpu);
-		tmp_iowait +=  nr_iowait_cpu(cpu) * diff;
-
 		per_cpu(last_time, cpu) = curr_time;
 
 		per_cpu(nr_prod_sum, cpu) = 0;
