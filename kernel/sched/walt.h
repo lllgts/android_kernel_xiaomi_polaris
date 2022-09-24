@@ -397,8 +397,8 @@ static inline void walt_rq_dump(int cpu)
 				rq->load_subs[i].new_subs);
 	}
 	walt_task_dump(tsk);
-	SCHED_PRINT(sched_capacity_margin_up[cpu]);
-	SCHED_PRINT(sched_capacity_margin_down[cpu]);
+	SCHED_PRINT(add_capacity_margin);
+	SCHED_PRINT(sysctl_sched_capacity_margin_down);
 }
 
 static inline void walt_dump(void)
