@@ -283,7 +283,7 @@ TRACE_EVENT(sched_get_task_cpu_cycles,
 		__entry->event		= event;
 		__entry->cycles		= cycles;
 		__entry->exec_time	= exec_time;
-		__entry->freq		= task_exec_scale;
+		__entry->freq		= rq->freq;
 		__entry->legacy_freq	= cpu_cur_freq(cpu);
 		__entry->max_freq	= cpu_max_freq(cpu);
 		__entry->pid            = p->pid;
