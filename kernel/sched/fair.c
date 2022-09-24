@@ -7102,7 +7102,6 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	int most_spare_cap_cpu = -1;
 	int isolated_candidate = -1;
 	int prev_cpu = task_cpu(p);
-	bool boosted = fbt_env->boosted;
 
 	*backup_cpu = -1;
 
@@ -7628,9 +7627,8 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu, int sync
 	}
 
 	sync_entity_load_avg(&p->se);
-
 	/* Find a cpu with sufficient capacity */
-	next_cpu = find_best_target(p, &backup_cpu, boosted, prefer_idle,
+	next_cpu = find_best_target(p, &backup_cpu, prefer_idle,
 				    &fbt_env);
 	if (next_cpu == -1) {
 		target_cpu = prev_cpu;
