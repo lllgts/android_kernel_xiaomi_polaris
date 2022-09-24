@@ -602,7 +602,7 @@ done:
 				sysctl_sched_user_hint);
 	return load;
 }
-
+bool rtgb_active;
 /*
  * In this function we match the accumulated subtractions with the current
  * and previous windows we are operating with. Ignore any entries where
@@ -2405,12 +2405,6 @@ void walt_sched_energy_populated_callback(void)
 	int prev_max = 0, next_min = 0;
 
 	mutex_lock(&cluster_lock);
-
-	if (num_clusters == 1) {
-		sysctl_sched_is_big_little = 0;
-		mutex_unlock(&cluster_lock);
-		return;
-	}
 
 	sort_clusters();
 
