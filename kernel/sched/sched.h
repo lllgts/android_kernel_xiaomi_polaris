@@ -1829,7 +1829,6 @@ static inline int hrtick_enabled(struct rq *rq)
 
 unsigned long
 cpu_util_freq_walt(int cpu, struct sched_walt_cpu_load *walt_load);
-#define sched_ravg_window TICK_NSEC
 
 #ifdef CONFIG_SMP
 extern void sched_avg_update(struct rq *rq);
@@ -1971,8 +1970,6 @@ cpu_util_freq(int cpu, struct sched_walt_cpu_load *walt_load)
 {
 	return cpu_util_freq_walt(cpu, walt_load);
 }
-
-#define sysctl_sched_use_walt_cpu_util 0
 
 extern unsigned long
 boosted_cpu_util(int cpu, struct sched_walt_cpu_load *walt_load);
