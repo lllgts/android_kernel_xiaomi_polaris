@@ -21,6 +21,7 @@
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/sched_energy.h>
+#include <linux/sched/sysctl.h>
 #include <linux/string.h>
 
 #include <asm/cpu.h>
@@ -61,12 +62,14 @@ static void set_capacity_scale(unsigned int cpu, unsigned long capacity)
 	per_cpu(cpu_scale, cpu) = capacity;
 }
 
-#ifdef CONFIG_PROC_SYSCTL
 static ssize_t cpu_capacity_show(struct device *dev,
 				 struct device_attribute *attr,
 				 char *buf)
 {
 	struct cpu *cpu = container_of(dev, struct cpu, dev);
+
+	if (is_sched_lib_based_app(current->pid))
+		return scnprintf(buf, PAGE_SIZE, "%lu\n", SCHED_CAPACITY_SCALE);
 
 	return sprintf(buf, "%lu\n",
 			arch_scale_cpu_capacity(NULL, cpu->dev.id));
@@ -118,7 +121,6 @@ static int register_cpu_capacity_sysctl(void)
 	return 0;
 }
 subsys_initcall(register_cpu_capacity_sysctl);
-#endif
 
 static int __init get_cpu_for_node(struct device_node *node)
 {
