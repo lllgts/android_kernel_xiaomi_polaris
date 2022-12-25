@@ -52,8 +52,6 @@
 #include <linux/oom.h>
 #include <linux/smpboot.h>
 #include <linux/jiffies.h>
-#include <linux/sched/isolation.h>
-#include <linux/sched/clock.h>
 #include "../time/tick-internal.h"
 
 #include "tree.h"
