@@ -2169,8 +2169,6 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-dispparam-crc-dcip3-on-command",
 	"qcom,mdss-dsi-dispparam-crc-off-command",
 	"qcom,mdss-dsi-read-panel-id-command",
-	"qcom,mdss-dsi-dispparam-flash-test-on-command",
-	"qcom,mdss-dsi-dispparam-flash-test-off-command",
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -2242,8 +2240,6 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-dispparam-crc-dcip3-on-command-state",
 	"qcom,mdss-dsi-dispparam-crc-off-command-state",
 	"qcom,mdss-dsi-read-panel-id-command-state",
-	"qcom,mdss-dsi-dispparam-flash-test-on-command-state",
-	"qcom,mdss-dsi-dispparam-flash-test-off-command-state",
 };
 
 static int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
@@ -5062,14 +5058,6 @@ static int panel_disp_param_send_lock(struct dsi_panel *panel, int param)
 			if (rc > 0)
 				panel->bl_config.ss_panel_id = panel->panel_ddic_id_cmds.rbuf[0];
 		}
-		break;
-	case 0xe0000000:
-		pr_info("Flashing Test On\n");
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_FLASH_TEST_ON);
-		break;
-	case 0xf0000000:
-		pr_info("Flashing Test Off\n");
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_FLASH_TEST_OFF);
 		break;
 	default:
 		break;
