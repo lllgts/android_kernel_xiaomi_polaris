@@ -32,6 +32,16 @@ config CRYPTO_AES_ARM64
 	tristate "AES core cipher using scalar instructions"
 	select CRYPTO_AES
 
+config CRYPTO_CRCT10DIF_ARM64_CE
+	tristate "CRCT10DIF digest algorithm using PMULL instructions"
+	depends on KERNEL_MODE_NEON && CRC_T10DIF
+	select CRYPTO_HASH
+
+config CRYPTO_CRC32_ARM64_CE
+	tristate "CRC32 and CRC32C digest algorithms using PMULL instructions"
+	depends on KERNEL_MODE_NEON && CRC32
+	select CRYPTO_HASH
+
 config CRYPTO_AES_ARM64_CE
 	tristate "AES core cipher using ARMv8 Crypto Extensions"
 	depends on ARM64 && KERNEL_MODE_NEON
@@ -50,14 +60,14 @@ config CRYPTO_AES_ARM64_CE_BLK
 	depends on ARM64 && KERNEL_MODE_NEON
 	select CRYPTO_BLKCIPHER
 	select CRYPTO_AES_ARM64_CE
-	select CRYPTO_ABLK_HELPER
+	select CRYPTO_SIMD
 
 config CRYPTO_AES_ARM64_NEON_BLK
 	tristate "AES in ECB/CBC/CTR/XTS modes using NEON instructions"
 	depends on ARM64 && KERNEL_MODE_NEON
 	select CRYPTO_BLKCIPHER
 	select CRYPTO_AES
-	select CRYPTO_ABLK_HELPER
+	select CRYPTO_SIMD
 
 config CRYPTO_CRC32_ARM64
 	tristate "CRC32 and CRC32C using optional ARMv8 instructions"
