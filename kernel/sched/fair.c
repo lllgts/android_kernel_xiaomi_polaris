@@ -4344,8 +4344,8 @@ static void throttle_cfs_rq(struct cfs_rq *cfs_rq)
 		qcfs_rq->h_nr_running -= task_delta;
 		walt_dec_throttled_cfs_rq_stats(&qcfs_rq->walt_stats, cfs_rq);
 		walt_propagate_cumulative_runnable_avg(
-				   &qcfs_rq->cumulative_runnable_avg,
-				   cfs_rq->cumulative_runnable_avg, false);
+				   &qcfs_rq->cumulative_runnable_avg_scaled,
+				   cfs_rq->cumulative_runnable_avg_scaled, false);
 
 		if (qcfs_rq->load.weight)
 			dequeue = 0;
@@ -4355,8 +4355,8 @@ static void throttle_cfs_rq(struct cfs_rq *cfs_rq)
 		sub_nr_running(rq, task_delta);
 		walt_dec_throttled_cfs_rq_stats(&rq->walt_stats, cfs_rq);
 		walt_propagate_cumulative_runnable_avg(
-				   &rq->cumulative_runnable_avg,
-				   cfs_rq->cumulative_runnable_avg, false);
+				   &rq->cumulative_runnable_avg_scaled,
+				   cfs_rq->cumulative_runnable_avg_scaled, false);
 	}
 
 	cfs_rq->throttled = 1;
@@ -4421,8 +4421,8 @@ void unthrottle_cfs_rq(struct cfs_rq *cfs_rq)
 		cfs_rq->h_nr_running += task_delta;
 		walt_inc_throttled_cfs_rq_stats(&cfs_rq->walt_stats, tcfs_rq);
 		walt_propagate_cumulative_runnable_avg(
-				   &cfs_rq->cumulative_runnable_avg,
-				   tcfs_rq->cumulative_runnable_avg, true);
+				   &cfs_rq->cumulative_runnable_avg_scaled,
+				   tcfs_rq->cumulative_runnable_avg_scaled, true);
 
 		if (cfs_rq_throttled(cfs_rq))
 			break;
@@ -4432,8 +4432,8 @@ void unthrottle_cfs_rq(struct cfs_rq *cfs_rq)
 		add_nr_running(rq, task_delta);
 		walt_inc_throttled_cfs_rq_stats(&rq->walt_stats, tcfs_rq);
 		walt_propagate_cumulative_runnable_avg(
-				   &rq->cumulative_runnable_avg,
-				   tcfs_rq->cumulative_runnable_avg, true);
+				   &rq->cumulative_runnable_avg_scaled,
+				   tcfs_rq->cumulative_runnable_avg_scaled, true);
 	}
 
 	/* determine whether we need to wake up potentially idle cpu */
@@ -4916,7 +4916,7 @@ static void walt_fixup_cumulative_runnable_avg_fair(struct rq *rq,
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
 
-		cfs_rq->cumulative_runnable_avg += task_load_delta;
+		cfs_rq->cumulative_runnable_avg_scaled += task_load_delta;
 		if (cfs_rq_throttled(cfs_rq))
 			break;
 	}
@@ -11949,7 +11949,7 @@ static void walt_init_cfs_rq_stats(struct cfs_rq *cfs_rq)
 {
 	cfs_rq->walt_stats.nr_big_tasks = 0;
 	cfs_rq->walt_stats.cumulative_runnable_avg_scaled = 0;
-	cfs_rq->walt_stats.pred_demands_sum = 0;
+	cfs_rq->walt_stats.pred_demands_sum_scaled = 0;
 }
 
 static void walt_inc_cfs_rq_stats(struct cfs_rq *cfs_rq, struct task_struct *p)
