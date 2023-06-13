@@ -268,6 +268,8 @@ replay:
 		err = -ENOENT;
 		tp_ops = tcf_proto_lookup_ops(tca[TCA_KIND]);
 		if (tp_ops == NULL) {
+			struct nlattr *kind = tca[TCA_KIND];
+			char name[IFNAMSIZ];
 
 			if (cl)
 				cops->put(q, cl);
